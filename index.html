@@ -54,6 +54,30 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
  .row>*{flex:1 1 100%}
  .card{padding:16px}
 }
+[hidden]{display:none!important}
+#tabs{flex-wrap:wrap}
+#tabs button{display:flex;gap:10px;align-items:center}
+#tabs button.on{background:var(--ac);color:var(--onac)}
+.sm{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.stat{display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;margin:0;font:inherit;color:var(--tx)}
+.stat b{font:700 1.9rem/1.1 var(--ser);color:var(--ac)}
+.hi{font:700 1.5rem/1.2 var(--ser);margin:4px 0 14px}
+.card>p.tk{font:1rem/1.5 var(--ui);margin:6px 0;display:flex;gap:8px;align-items:center}
+@media(min-width:900px){
+ #app{display:grid;grid-template-columns:260px minmax(0,1fr);align-items:start}
+ header{grid-column:1/-1}
+ #tabs{flex-direction:column;flex-wrap:nowrap;position:sticky;top:0;margin:0;max-width:none;padding:16px 12px;gap:4px;background:var(--card);border-right:1px solid var(--bd);min-height:calc(100vh - 62px)}
+ #tabs button{width:100%;padding:12px 14px;border-radius:12px}
+ main{max-width:900px;width:100%}
+}
+@media(max-width:640px){
+ #tabs button{flex-direction:column;gap:2px}
+ #tabs .ic{font-size:1.25rem;line-height:1}
+ #tabs .lg{display:none}
+ #tabs .sm{display:block;font-size:.66rem}
+ #tabs button.on{background:var(--acl);color:var(--ac)}
+}
 </style>
 </head>
 <body>
@@ -73,14 +97,18 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   <button id="tema" class="ghost" type="button">☾ Escuro</button>
   <button id="sair" class="ghost" type="button">Sair</button>
 </header>
-<nav id="tabs" aria-label="Seções">
-  <button data-v="q" class="on">Questões</button>
-  <button data-v="s">Simulado</button>
-  <button data-v="h">Histórico</button>
-  <button data-v="d">Desempenho</button>
+<nav id="tabs" aria-label="Menu">
+  <button data-v="i" class="on"><span class="ic">🏠</span><span class="lg">Início</span><span class="sm">Início</span></button>
+  <button data-v="q"><span class="ic">📚</span><span class="lg">Banco de Questões</span><span class="sm">Questões</span></button>
+  <button data-v="s"><span class="ic">🎯</span><span class="lg">Simulados</span><span class="sm">Simulado</span></button>
+  <button data-v="e"><span class="ic">📓</span><span class="lg">Caderno de Erros</span><span class="sm">Erros</span></button>
+  <button data-v="f"><span class="ic">🗂️</span><span class="lg">Flashcards</span><span class="sm">Cards</span></button>
+  <button data-v="c"><span class="ic">📅</span><span class="lg">Cronograma</span><span class="sm">Plano</span></button>
+  <button data-v="d"><span class="ic">📊</span><span class="lg">Meu desempenho</span><span class="sm">Dados</span></button>
 </nav>
 <main>
-  <section id="v-q">
+  <section id="v-i"><div id="ibox"></div></section>
+  <section id="v-q" hidden>
     <div class="row">
       <select id="fd"></select><select id="fb"></select><select id="fa"></select>
       <select id="ft"><option value="">Todos os formatos</option><option value="certo_errado">Certo ou errado</option><option value="multipla_escolha">Múltipla escolha</option></select>
@@ -102,15 +130,25 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
     <div id="sbox"></div>
   </section>
 
-  <section id="v-h" hidden>
+  <section id="v-e" hidden>
     <div class="row">
-      <label style="flex:1;border:0;background:none"><input type="checkbox" id="so" style="min-width:0"> Mostrar só os erros</label>
+      <label style="flex:1;border:0;background:none"><input type="checkbox" id="so" style="min-width:0" checked> Mostrar só os erros</label>
       <button class="btn p" id="refazer">Refazer erros</button>
     </div>
     <div id="hbox"></div>
   </section>
 
   <section id="v-d" hidden><div id="dbox"></div></section>
+
+  <section id="v-f" hidden>
+    <div class="card"><div class="row"><input id="ff" placeholder="Frente (pergunta)"><input id="fv" placeholder="Verso (resposta)"><input id="fdc" placeholder="Disciplina (opcional)"><button class="btn p" id="fadd">Adicionar</button></div></div>
+    <div id="fbox"></div>
+  </section>
+
+  <section id="v-c" hidden>
+    <div class="card"><div class="row"><input id="ct" placeholder="Tarefa (ex.: estudar densidade)"><input id="cdis" placeholder="Disciplina (opcional)"><input id="cd" type="date" aria-label="Data"><button class="btn p" id="cadd">Adicionar</button></div></div>
+    <div id="cbox"></div>
+  </section>
 </main>
 </div>
 
@@ -135,14 +173,14 @@ $('#go').onclick=async()=>{
 $('#sair').onclick=async()=>{await sb.auth.signOut();location.reload()};
 async function entrar(){
   $('#login').hidden=true;$('#app').hidden=false;
-  await filtros();
+  await filtros();inicio();
 }
 
 /* ---------- navegação ---------- */
 function ver(v){
   document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  ['q','s','h','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
-  if(v==='h')hist();if(v==='d')desemp();
+  ['i','q','s','e','f','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
+  if(v==='i')inicio();if(v==='e')hist();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
 }
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
@@ -262,6 +300,69 @@ async function desemp(){
   <div class="card"><h3 style="margin-top:0">Por assunto</h3>${grp('assunto').map(lin).join('')}</div>
   <div class="card"><h3 style="margin-top:0">Últimos dias</h3>${ult.map(([k,v])=>lin([new Date(k+'T12:00').toLocaleDateString('pt-BR'),v])).join('')}</div>`;
 }
+/* ---------- início ---------- */
+const hoje=()=>new Date().toLocaleDateString('sv-SE');
+async function inicio(){
+  const h=hoje(),ini=new Date();ini.setHours(0,0,0,0);
+  const [r,e,f,c]=await Promise.all([
+    sb.from('respostas').select('correta').gte('respondida_em',ini.toISOString()),
+    sb.from('respostas').select('id',{count:'exact',head:true}).eq('correta',false),
+    sb.from('flashcards').select('id',{count:'exact',head:true}).lte('revisar_em',h),
+    sb.from('cronograma').select('titulo,disciplina,concluida').eq('data',h)]);
+  const d=r.data||[],t=d.length,ac=d.filter(x=>x.correta).length,ts=c.data||[];
+  const k=(n,l,v)=>`<button class="card stat" data-go="${v}"><b>${n}</b><span class="mut">${l}</span></button>`;
+  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(e.count||0,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}</div>
+  <div class="card"><h3 style="margin-top:0">Tarefas de hoje</h3>${ts.length?ts.map(x=>`<p class="tk">${x.concluida?'✅':'⬜'} <span>${esc(x.titulo)}${x.disciplina?` <span class="mut">· ${esc(x.disciplina)}</span>`:''}</span></p>`).join(''):'<p class="mut">Nenhuma tarefa para hoje. Planeje no Cronograma.</p>'}</div>`;
+  document.querySelectorAll('#ibox [data-go]').forEach(b=>b.onclick=()=>ver(b.dataset.go));
+}
+
+/* ---------- flashcards ---------- */
+const INT=[1,3,7,14,30];let fcs=[],fi=0;
+async function fc(){
+  const {data,error}=await sb.from('flashcards').select('*').lte('revisar_em',hoje()).order('revisar_em').limit(100);
+  if(error)return $('#fbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
+  fcs=data||[];fi=0;fcShow();
+}
+function fcShow(){
+  const b=$('#fbox');
+  if(fi>=fcs.length)return b.innerHTML='<div class="card">Nenhum flashcard para revisar agora. Adicione novos acima.</div>';
+  const c=fcs[fi];
+  b.innerHTML=`<div class="card"><p class="mut">Cartão ${fi+1} de ${fcs.length}${c.disciplina?' · '+esc(c.disciplina):''}</p><p>${esc(c.frente).replace(/\n/g,'<br>')}</p><div id="vv"></div><div id="vb"><button class="btn p" id="vr">Mostrar resposta</button></div></div>`;
+  $('#vr').onclick=()=>{
+    $('#vv').innerHTML=`<div class="fb">${esc(c.verso).replace(/\n/g,'<br>')}</div>`;
+    $('#vb').innerHTML='<p style="display:flex;gap:8px"><button class="btn" id="fe">Errei</button><button class="btn p" id="fa">Acertei</button></p>';
+    $('#fe').onclick=()=>fcRes(c,false);$('#fa').onclick=()=>fcRes(c,true);
+  };
+}
+async function fcRes(c,ok){
+  const cx=ok?Math.min(c.caixa+1,5):1,d=new Date();d.setDate(d.getDate()+INT[cx-1]);
+  await sb.from('flashcards').update({caixa:cx,revisar_em:d.toLocaleDateString('sv-SE')}).eq('id',c.id);
+  fi++;fcShow();
+}
+$('#fadd').onclick=async()=>{
+  const f=$('#ff').value.trim(),v=$('#fv').value.trim();if(!f||!v)return;
+  await sb.from('flashcards').insert({frente:f,verso:v,disciplina:$('#fdc').value.trim()||null});
+  $('#ff').value=$('#fv').value=$('#fdc').value='';fc();
+};
+
+/* ---------- cronograma ---------- */
+$('#cd').value=hoje();
+async function cron(){
+  const {data,error}=await sb.from('cronograma').select('*').order('data').limit(300);
+  if(error)return $('#cbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
+  const h=hoje(),l=data||[];
+  if(!l.length)return $('#cbox').innerHTML='<p class="mut">Nenhuma tarefa ainda. Adicione a primeira acima.</p>';
+  const g={};l.forEach(t=>(g[t.data]=g[t.data]||[]).push(t));
+  $('#cbox').innerHTML=Object.entries(g).map(([d,ts])=>`<div class="card"><h3 style="margin:0 0 6px">${new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}${d===h?' <span class="tag">hoje</span>':d<h?' <span class="tag">passado</span>':''}</h3>${ts.map(t=>`<p class="tk"><input type="checkbox" data-id="${t.id}" ${t.concluida?'checked':''}><span style="flex:1;${t.concluida?'text-decoration:line-through;color:var(--mut)':''}">${esc(t.titulo)}${t.disciplina?` <span class="mut">· ${esc(t.disciplina)}</span>`:''}</span><button class="ghost" data-del="${t.id}" aria-label="Apagar tarefa">✕</button></p>`).join('')}</div>`).join('');
+  document.querySelectorAll('#cbox [data-id]').forEach(i=>i.onchange=async()=>{await sb.from('cronograma').update({concluida:i.checked}).eq('id',i.dataset.id);cron()});
+  document.querySelectorAll('#cbox [data-del]').forEach(b=>b.onclick=async()=>{await sb.from('cronograma').delete().eq('id',b.dataset.del);cron()});
+}
+$('#cadd').onclick=async()=>{
+  const t=$('#ct').value.trim(),d=$('#cd').value;if(!t||!d)return;
+  await sb.from('cronograma').insert({titulo:t,disciplina:$('#cdis').value.trim()||null,data:d});
+  $('#ct').value=$('#cdis').value='';cron();
+};
+
 /* ---------- tema ---------- */
 function tema(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('tema',t)}catch(e){}$('#tema').textContent=t==='dark'?'☀ Claro':'☾ Escuro'}
 (function(){let t;try{t=localStorage.getItem('tema')}catch(e){}t=t||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');tema(t)})();
