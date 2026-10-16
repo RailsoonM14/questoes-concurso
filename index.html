@@ -5,37 +5,55 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Questões de Concurso</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f3f5f2;--card:#fff;--tx:#18241d;--mut:#66756b;--ac:#2f6f4e;--acl:#e3efe8;--ok:#1f8a4c;--er:#c0392b;--bd:#d8e0da}
+:root{color-scheme:light;--bg:#eef3ee;--card:#fff;--tx:#17251d;--mut:#62756a;--ac:#2e6b48;--onac:#fff;--acl:#e3efe7;--ok:#1f8a4c;--okbg:#dff3e6;--er:#c0392b;--erbg:#fbe4e1;--bd:#d6e0d8;--sh:0 1px 2px rgba(20,40,28,.06),0 8px 22px rgba(20,40,28,.07);--ui:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--ser:"Source Serif 4",Georgia,"Times New Roman",serif}
+[data-theme=dark]{color-scheme:dark;--bg:#0f1713;--card:#17221c;--tx:#e5eee8;--mut:#8da296;--ac:#5fbf86;--onac:#0f1713;--acl:#1f3328;--ok:#52c57f;--okbg:#173a26;--er:#ef7b6d;--erbg:#3d1f1b;--bd:#2b3d33;--sh:none}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 Georgia,"Times New Roman",serif}
-button,select,input{font:inherit}
-header{background:var(--ac);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-header h1{font-size:1.15rem;margin:0;flex:1}
-nav{display:flex;gap:4px;flex-wrap:wrap}
-nav button,.btn{border:1px solid var(--ac);background:var(--card);color:var(--ac);padding:8px 14px;border-radius:6px;cursor:pointer}
-nav button{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
-nav button.on{background:#fff;color:var(--ac)}
-.btn.p{background:var(--ac);color:#fff}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #f0b429;outline-offset:2px}
-main{max-width:760px;margin:0 auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.row>*{flex:1;min-width:140px;padding:8px;border:1px solid var(--bd);border-radius:6px;background:#fff}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 var(--ui)}
+button,select,input{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:8px;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--bd)}
+header h1{flex:1;margin:0;font:700 1.25rem/1.2 var(--ser);color:var(--ac)}
+.ghost{border:1px solid var(--bd);background:transparent;color:var(--mut);padding:7px 12px;border-radius:999px;cursor:pointer;font-size:.9rem}
+.ghost:hover{background:var(--acl);color:var(--ac)}
+#tabs{display:flex;gap:6px;max-width:760px;margin:14px auto 0;padding:0 16px}
+#tabs button{border:0;background:transparent;color:var(--mut);padding:9px 16px;border-radius:999px;cursor:pointer;font-weight:500}
+#tabs button.on{background:var(--acl);color:var(--ac);font-weight:700}
+main{max-width:760px;margin:0 auto;padding:16px 16px 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:var(--sh)}
+.btn{border:1px solid var(--ac);background:var(--card);color:var(--ac);padding:10px 18px;border-radius:10px;cursor:pointer;font-weight:600}
+.btn.p{background:var(--ac);color:var(--onac)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #e0a82e;outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.row>*{flex:1;min-width:150px;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
 .row>button{flex:0 0 auto}
-.alt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer}
-.alt:hover{background:var(--acl)}
-.alt.ok{background:#dff3e6;border-color:var(--ok)}
-.alt.er{background:#fbe4e1;border-color:var(--er)}
+.q-text,.card>p:not(.mut){font-family:var(--ser);font-size:1.08rem;line-height:1.7}
+.alt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);cursor:pointer}
+.alt b{flex:0 0 28px;height:28px;border-radius:50%;background:var(--acl);color:var(--ac);display:grid;place-items:center;font-size:.85rem}
+.alt:hover:not(:disabled){border-color:var(--ac)}
 .alt.sel{border-color:var(--ac);background:var(--acl)}
+.alt.sel b{background:var(--ac);color:var(--onac)}
+.alt.ok{background:var(--okbg);border-color:var(--ok)}
+.alt.ok b{background:var(--ok);color:#fff}
+.alt.er{background:var(--erbg);border-color:var(--er)}
+.alt.er b{background:var(--er);color:#fff}
+.alt:disabled{cursor:default;opacity:1}
 .mut{color:var(--mut);font-size:.9rem}
-.fb{margin-top:10px;padding:10px;border-left:4px solid var(--ac);background:var(--acl)}
+.fb{margin-top:12px;padding:12px 14px;border-left:4px solid var(--ac);background:var(--acl);border-radius:0 10px 10px 0}
 .bar{height:10px;background:var(--bd);border-radius:5px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--ac)}
-.tag{display:inline-block;font-size:.8rem;background:var(--acl);color:var(--ac);padding:2px 8px;border-radius:10px;margin-right:4px}
-#timer{position:sticky;top:0;background:var(--card);border:1px solid var(--bd);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:bold;z-index:2}
-#login{max-width:340px;margin:12vh auto;padding:0 16px}
-#login input{width:100%;margin-bottom:10px;padding:10px;border:1px solid var(--bd);border-radius:6px}
+.bar i{display:block;height:100%;background:var(--ac);border-radius:5px}
+.tag{font-family:var(--ui);display:inline-block;font-size:.8rem;background:var(--acl);color:var(--ac);padding:3px 10px;border-radius:999px;margin:0 4px 4px 0}
+#timer{position:sticky;top:8px;background:var(--card);border:1px solid var(--bd);padding:10px 14px;border-radius:12px;margin-bottom:14px;font-weight:700;z-index:2;box-shadow:var(--sh)}
+#login{max-width:360px;margin:12vh auto;padding:0 16px}
+#login input{width:100%;margin-bottom:10px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
+@media(max-width:640px){
+ #tabs{position:fixed;left:0;right:0;bottom:0;max-width:none;margin:0;gap:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--bd);z-index:5}
+ #tabs button{flex:1;padding:10px 4px;font-size:.85rem;border-radius:10px}
+ main{padding-bottom:96px}
+ .row>*{flex:1 1 100%}
+ .card{padding:16px}
+}
 </style>
 </head>
 <body>
@@ -52,14 +70,15 @@ main{max-width:760px;margin:0 auto;padding:16px}
 <div id="app" hidden>
 <header>
   <h1>Questões de Concurso</h1>
-  <nav>
-    <button data-v="q" class="on">Questões</button>
-    <button data-v="s">Simulado</button>
-    <button data-v="h">Histórico</button>
-    <button data-v="d">Desempenho</button>
-    <button id="sair">Sair</button>
-  </nav>
+  <button id="tema" class="ghost" type="button">☾ Escuro</button>
+  <button id="sair" class="ghost" type="button">Sair</button>
 </header>
+<nav id="tabs" aria-label="Seções">
+  <button data-v="q" class="on">Questões</button>
+  <button data-v="s">Simulado</button>
+  <button data-v="h">Histórico</button>
+  <button data-v="d">Desempenho</button>
+</nav>
 <main>
   <section id="v-q">
     <div class="row">
@@ -243,6 +262,10 @@ async function desemp(){
   <div class="card"><h3 style="margin-top:0">Por assunto</h3>${grp('assunto').map(lin).join('')}</div>
   <div class="card"><h3 style="margin-top:0">Últimos dias</h3>${ult.map(([k,v])=>lin([new Date(k+'T12:00').toLocaleDateString('pt-BR'),v])).join('')}</div>`;
 }
+/* ---------- tema ---------- */
+function tema(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('tema',t)}catch(e){}$('#tema').textContent=t==='dark'?'☀ Claro':'☾ Escuro'}
+(function(){let t;try{t=localStorage.getItem('tema')}catch(e){}t=t||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');tema(t)})();
+$('#tema').onclick=()=>tema(document.documentElement.dataset.theme==='dark'?'light':'dark');
 init();
 </script>
 </body>
