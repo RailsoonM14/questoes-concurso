@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Questões de Concurso</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f3f5f2;--card:#fff;--tx:#18241d;--mut:#66756b;--ac:#2f6f4e;--acl:#e3efe8;--ok:#1f8a4c;--er:#c0392b;--bd:#d8e0da}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 Georgia,"Times New Roman",serif}
+button,select,input{font:inherit}
+header{background:var(--ac);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{font-size:1.15rem;margin:0;flex:1}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button,.btn{border:1px solid var(--ac);background:var(--card);color:var(--ac);padding:8px 14px;border-radius:6px;cursor:pointer}
+nav button{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+nav button.on{background:#fff;color:var(--ac)}
+.btn.p{background:var(--ac);color:#fff}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #f0b429;outline-offset:2px}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.row>*{flex:1;min-width:140px;padding:8px;border:1px solid var(--bd);border-radius:6px;background:#fff}
+.row>button{flex:0 0 auto}
+.alt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer}
+.alt:hover{background:var(--acl)}
+.alt.ok{background:#dff3e6;border-color:var(--ok)}
+.alt.er{background:#fbe4e1;border-color:var(--er)}
+.alt.sel{border-color:var(--ac);background:var(--acl)}
+.mut{color:var(--mut);font-size:.9rem}
+.fb{margin-top:10px;padding:10px;border-left:4px solid var(--ac);background:var(--acl)}
+.bar{height:10px;background:var(--bd);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ac)}
+.tag{display:inline-block;font-size:.8rem;background:var(--acl);color:var(--ac);padding:2px 8px;border-radius:10px;margin-right:4px}
+#timer{position:sticky;top:0;background:var(--card);border:1px solid var(--bd);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:bold;z-index:2}
+#login{max-width:340px;margin:12vh auto;padding:0 16px}
+#login input{width:100%;margin-bottom:10px;padding:10px;border:1px solid var(--bd);border-radius:6px}
+</style>
+</head>
+<body>
+<div id="login" hidden>
+  <div class="card">
+    <h2 style="margin-top:0">Entrar</h2>
+    <input id="em" type="email" placeholder="E-mail" autocomplete="username">
+    <input id="pw" type="password" placeholder="Senha" autocomplete="current-password">
+    <button class="btn p" id="go" style="width:100%">Entrar</button>
+    <p id="lerr" class="mut" style="color:var(--er)"></p>
+  </div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <h1>Questões de Concurso</h1>
+  <nav>
+    <button data-v="q" class="on">Questões</button>
+    <button data-v="s">Simulado</button>
+    <button data-v="h">Histórico</button>
+    <button data-v="d">Desempenho</button>
+    <button id="sair">Sair</button>
+  </nav>
+</header>
+<main>
+  <section id="v-q">
+    <div class="row">
+      <select id="fd"></select><select id="fb"></select><select id="fa"></select>
+      <select id="ft"><option value="">Todos os formatos</option><option value="certo_errado">Certo ou errado</option><option value="multipla_escolha">Múltipla escolha</option></select>
+      <button class="btn p" id="buscar">Buscar questões</button>
+    </div>
+    <div id="qbox"><p class="mut">Escolha os filtros e clique em "Buscar questões".</p></div>
+  </section>
+
+  <section id="v-s" hidden>
+    <div class="card">
+      <div class="row">
+        <select id="sd"></select>
+        <input id="sn" type="number" min="1" value="20" aria-label="Número de questões" title="Número de questões">
+        <input id="st" type="number" min="1" value="30" aria-label="Tempo em minutos" title="Tempo em minutos">
+        <button class="btn p" id="iniciar">Iniciar simulado</button>
+      </div>
+      <p class="mut">Campos: disciplina, número de questões e tempo em minutos.</p>
+    </div>
+    <div id="sbox"></div>
+  </section>
+
+  <section id="v-h" hidden>
+    <div class="row">
+      <label style="flex:1;border:0;background:none"><input type="checkbox" id="so" style="min-width:0"> Mostrar só os erros</label>
+      <button class="btn p" id="refazer">Refazer erros</button>
+    </div>
+    <div id="hbox"></div>
+  </section>
+
+  <section id="v-d" hidden><div id="dbox"></div></section>
+</main>
+</div>
+
+<script>
+const SB_URL='https://vyzjajwsslskzwmcrzab.supabase.co';
+const SB_KEY='sb_publishable_eDM8r43UFCNFT3YU5Dq4hw_j5RRdAcb';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+let fila=[],idx=0,sim=null,tick=null;
+
+/* ---------- acesso ---------- */
+async function init(){
+  const {data}=await sb.auth.getSession();
+  data.session?entrar():($('#login').hidden=false);
+}
+$('#go').onclick=async()=>{
+  const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
+  error?$('#lerr').textContent='E-mail ou senha incorretos.':(location.reload());
+};
+$('#sair').onclick=async()=>{await sb.auth.signOut();location.reload()};
+async function entrar(){
+  $('#login').hidden=true;$('#app').hidden=false;
+  await filtros();
+}
+
+/* ---------- navegação ---------- */
+function ver(v){
+  document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  ['q','s','h','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
+  if(v==='h')hist();if(v==='d')desemp();
+}
+document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
+
+/* ---------- filtros ---------- */
+async function filtros(){
+  const {data}=await sb.from('questoes').select('disciplina,banca,assunto').limit(5000);
+  const u=k=>[...new Set((data||[]).map(r=>r[k]).filter(Boolean))].sort();
+  const fill=(id,nome,k)=>$(id).innerHTML=`<option value="">${nome}</option>`+u(k).map(v=>`<option>${esc(v)}</option>`).join('');
+  fill('#fd','Todas as disciplinas','disciplina');fill('#fb','Todas as bancas','banca');
+  fill('#fa','Todos os assuntos','assunto');fill('#sd','Todas as disciplinas','disciplina');
+}
+
+/* ---------- questões ---------- */
+function opcoes(q){
+  if(q.alternativas&&Object.keys(q.alternativas).length)return Object.entries(q.alternativas);
+  return [['C','Certo'],['E','Errado']];
+}
+$('#buscar').onclick=async()=>{
+  let r=sb.from('questoes').select('*').limit(300);
+  [['#fd','disciplina'],['#fb','banca'],['#fa','assunto'],['#ft','tipo']].forEach(([id,c])=>{if($(id).value)r=r.eq(c,$(id).value)});
+  const {data,error}=await r;
+  if(error)return $('#qbox').innerHTML='<p class="mut">Erro ao buscar: '+esc(error.message)+'</p>';
+  fila=shuf(data||[]);idx=0;mostrar();
+};
+function mostrar(){
+  const b=$('#qbox');
+  if(!fila.length)return b.innerHTML='<p class="mut">Nenhuma questão encontrada com esses filtros.</p>';
+  if(idx>=fila.length)return b.innerHTML='<div class="card">Você terminou esta lista de '+fila.length+' questões.</div>';
+  const q=fila[idx];
+  b.innerHTML=`<div class="card"><p class="mut">Questão ${idx+1} de ${fila.length}</p>
+  <p><span class="tag">${esc(q.banca)}</span><span class="tag">${esc(q.disciplina)}</span>${q.assunto?`<span class="tag">${esc(q.assunto)}</span>`:''}${q.ano?`<span class="tag">${q.ano}</span>`:''}</p>
+  <p>${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
+  <div id="alts">${opcoes(q).map(([l,t])=>`<button class="alt" data-l="${esc(l)}"><b>${esc(l)}</b> ${t===l?'':esc(t)}</button>`).join('')}</div>
+  <div id="fbk"></div></div>`;
+  b.querySelectorAll('.alt').forEach(a=>a.onclick=()=>responder(a.dataset.l));
+}
+async function responder(l){
+  const q=fila[idx],ok=l===q.gabarito;
+  document.querySelectorAll('#alts .alt').forEach(a=>{
+    a.disabled=true;
+    if(a.dataset.l===q.gabarito)a.classList.add('ok');
+    else if(a.dataset.l===l)a.classList.add('er');
+  });
+  $('#fbk').innerHTML=`<div class="fb"><b>${ok?'Correto!':'Errado.'}</b> Gabarito: ${esc(q.gabarito)}.${q.comentario?'<br>'+esc(q.comentario).replace(/\n/g,'<br>'):''}</div>
+  <p><button class="btn p" id="prox">Próxima questão</button></p>`;
+  $('#prox').onclick=()=>{idx++;mostrar()};
+  await sb.from('respostas').insert({questao_id:q.id,resposta:l,correta:ok});
+}
+
+/* ---------- simulado ---------- */
+$('#iniciar').onclick=async()=>{
+  let r=sb.from('questoes').select('*').limit(1000);
+  if($('#sd').value)r=r.eq('disciplina',$('#sd').value);
+  const {data}=await r;
+  const n=Math.max(1,+$('#sn').value||1),min=Math.max(1,+$('#st').value||1);
+  const qs=shuf(data||[]).slice(0,n);
+  if(!qs.length)return $('#sbox').innerHTML='<p class="mut">Não há questões para este simulado.</p>';
+  const {data:s}=await sb.from('simulados').insert({titulo:'Simulado '+new Date().toLocaleDateString('pt-BR'),qtd_questoes:qs.length,tempo_minutos:min}).select().single();
+  sim={id:s.id,qs,resp:{},fim:Date.now()+min*60000};
+  $('#sbox').innerHTML='<div id="timer"></div>'+qs.map((q,i)=>`<div class="card"><p class="mut">Questão ${i+1} · ${esc(q.disciplina)}</p>
+  <p>${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
+  ${opcoes(q).map(([l,t])=>`<button class="alt" data-i="${i}" data-l="${esc(l)}"><b>${esc(l)}</b> ${t===l?'':esc(t)}</button>`).join('')}</div>`).join('')+
+  '<button class="btn p" id="fim">Finalizar simulado</button>';
+  $('#sbox').querySelectorAll('.alt').forEach(a=>a.onclick=()=>{
+    sim.resp[a.dataset.i]=a.dataset.l;
+    $('#sbox').querySelectorAll(`.alt[data-i="${a.dataset.i}"]`).forEach(x=>x.classList.toggle('sel',x===a));
+  });
+  $('#fim').onclick=finalizar;
+  clearInterval(tick);tick=setInterval(()=>{
+    const s=Math.max(0,Math.round((sim.fim-Date.now())/1000));
+    $('#timer').textContent='Tempo restante: '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    if(s<=0)finalizar();
+  },500);
+};
+async function finalizar(){
+  if(!sim)return;clearInterval(tick);
+  const S=sim;sim=null;
+  const linhas=[];let ac=0;
+  S.qs.forEach((q,i)=>{const l=S.resp[i];if(l){const ok=l===q.gabarito;if(ok)ac++;linhas.push({questao_id:q.id,simulado_id:S.id,resposta:l,correta:ok})}});
+  if(linhas.length)await sb.from('respostas').insert(linhas);
+  const nota=Math.round(ac/S.qs.length*1000)/10;
+  await sb.from('simulados').update({finalizado_em:new Date().toISOString(),nota}).eq('id',S.id);
+  $('#sbox').innerHTML=`<div class="card"><h2 style="margin-top:0">Nota: ${nota}%</h2><p>${ac} acertos em ${S.qs.length} questões (${S.qs.length-linhas.length} sem resposta).</p></div>`+
+  S.qs.map((q,i)=>{const l=S.resp[i],ok=l===q.gabarito;return `<div class="card"><p class="mut">Questão ${i+1} · ${l?(ok?'acertou':'errou'):'sem resposta'}</p>
+  <p>${esc(q.enunciado).replace(/\n/g,'<br>')}</p><p>Sua resposta: <b>${esc(l||'—')}</b> · Gabarito: <b>${esc(q.gabarito)}</b></p>${q.comentario?`<div class="fb">${esc(q.comentario)}</div>`:''}</div>`}).join('');
+}
+
+/* ---------- histórico ---------- */
+async function hist(){
+  const {data,error}=await sb.from('respostas').select('id,resposta,correta,respondida_em,questoes(id,enunciado,disciplina,assunto,gabarito)').order('respondida_em',{ascending:false}).limit(150);
+  if(error)return $('#hbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
+  const l=(data||[]).filter(r=>r.questoes&&(!$('#so').checked||!r.correta));
+  $('#hbox').innerHTML=l.length?l.map(r=>`<div class="card"><p class="mut">${new Date(r.respondida_em).toLocaleString('pt-BR')} · ${esc(r.questoes.disciplina)}${r.questoes.assunto?' · '+esc(r.questoes.assunto):''}</p>
+  <p>${esc(r.questoes.enunciado.slice(0,220))}${r.questoes.enunciado.length>220?'…':''}</p>
+  <p>Você marcou <b>${esc(r.resposta)}</b> · Gabarito <b>${esc(r.questoes.gabarito)}</b> · <b style="color:${r.correta?'var(--ok)':'var(--er)'}">${r.correta?'acertou':'errou'}</b></p></div>`).join(''):'<p class="mut">Nada por aqui ainda.</p>';
+}
+$('#so').onchange=hist;
+$('#refazer').onclick=async()=>{
+  const {data}=await sb.from('respostas').select('correta,questoes(*)').eq('correta',false).limit(500);
+  const m=new Map();(data||[]).forEach(r=>r.questoes&&m.set(r.questoes.id,r.questoes));
+  fila=shuf([...m.values()]);idx=0;ver('q');mostrar();
+};
+
+/* ---------- desempenho ---------- */
+async function desemp(){
+  const {data,error}=await sb.from('respostas').select('correta,respondida_em,questoes(disciplina,assunto)').limit(5000);
+  if(error)return $('#dbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
+  const d=(data||[]).filter(r=>r.questoes);
+  if(!d.length)return $('#dbox').innerHTML='<p class="mut">Responda algumas questões para ver o seu desempenho.</p>';
+  const grp=k=>{const m={};d.forEach(r=>{const n=r.questoes[k]||'Sem assunto';m[n]=m[n]||{t:0,a:0};m[n].t++;if(r.correta)m[n].a++});return Object.entries(m).sort((a,b)=>b[1].t-a[1].t)};
+  const lin=([n,v])=>{const p=Math.round(v.a/v.t*100);return `<p style="margin:10px 0 2px">${esc(n)} <span class="mut">— ${v.a}/${v.t} (${p}%)</span></p><div class="bar"><i style="width:${p}%"></i></div>`};
+  const tot=d.length,ac=d.filter(r=>r.correta).length;
+  const dias={};d.forEach(r=>{const k=r.respondida_em.slice(0,10);dias[k]=dias[k]||{t:0,a:0};dias[k].t++;if(r.correta)dias[k].a++});
+  const ult=Object.entries(dias).sort().slice(-7);
+  $('#dbox').innerHTML=`<div class="card"><h2 style="margin:0">${Math.round(ac/tot*100)}% de acertos</h2><p class="mut">${ac} certas em ${tot} respostas</p></div>
+  <div class="card"><h3 style="margin-top:0">Por disciplina</h3>${grp('disciplina').map(lin).join('')}</div>
+  <div class="card"><h3 style="margin-top:0">Por assunto</h3>${grp('assunto').map(lin).join('')}</div>
+  <div class="card"><h3 style="margin-top:0">Últimos dias</h3>${ult.map(([k,v])=>lin([new Date(k+'T12:00').toLocaleDateString('pt-BR'),v])).join('')}</div>`;
+}
+init();
+</script>
+</body>
+</html>
