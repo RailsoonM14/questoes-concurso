@@ -180,6 +180,20 @@ details.card summary{cursor:pointer;font-weight:700}
 #stopw small{font-weight:500;opacity:.7;font-size:.7rem}
 @media(max-width:1180px){.qgrid{grid-template-columns:1fr}}
 @media(max-width:640px){.qcard{padding:16px}}
+/* flashcards */
+.fcard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;max-width:620px;min-height:300px;margin:0 auto;padding:36px 32px;border:1px solid var(--bd);border-radius:26px;background:var(--card);color:var(--tx);box-shadow:var(--sh);cursor:pointer;text-align:center;font:inherit;transition:transform .15s}
+.fcard:hover{transform:translateY(-2px)}
+.fcard.back{background:var(--acl);border-color:var(--ac)}
+.flab{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.ftxt{font:700 1.45rem/1.4 var(--ui)}
+.fcard.back .ftxt{font:600 1.1rem/1.75 var(--ui)}
+.fhint{font-size:.85rem;color:var(--mut)}
+.frate{display:flex;justify-content:center;gap:10px;margin-top:14px}
+.btn.bad{border-color:var(--er);color:var(--er)}
+.fdue{text-align:center;margin:12px 0 0}
+.fnav{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px}
+@media(prefers-reduced-motion:reduce){.fcard{transition:none}.fcard:hover{transform:none}}
+@media(max-width:640px){.fcard{min-height:250px;padding:26px 18px}.ftxt{font-size:1.2rem}}
 </style>
 </head>
 <body>
@@ -256,8 +270,14 @@ details.card summary{cursor:pointer;font-weight:700}
   <section id="v-d" hidden><div id="dbox"></div></section>
 
   <section id="v-f" hidden>
-    <div class="card"><div class="row"><input id="ff" placeholder="Frente (pergunta)"><input id="fv" placeholder="Verso (resposta)"><input id="fdc" placeholder="Disciplina (opcional)"><button class="btn p" id="fadd">Adicionar</button></div></div>
-    <div id="fbox"></div>
+    <h2 class="hi">Flashcards</h2>
+    <p class="mut" id="fsub" style="margin:-8px 0 14px"></p>
+    <div class="chips" id="fchips"></div>
+    <div id="fbox" style="margin-top:18px"></div>
+    <details class="card" style="margin-top:22px">
+      <summary>➕ Novo cartão</summary>
+      <div class="row" style="margin-top:12px"><input id="ff" placeholder="Frente (pergunta)"><input id="fv" placeholder="Verso (resposta)"><input id="fdc" placeholder="Baralho · assunto (ex.: Química · Densidade)"><button class="btn p" id="fadd">Adicionar</button></div>
+    </details>
   </section>
 
   <section id="v-c" hidden>
@@ -528,28 +548,55 @@ async function inicio(){
 }
 
 /* ---------- flashcards ---------- */
-const INT=[1,3,7,14,30];let fcs=[],fi=0;
+const INT=[1,3,7,14,30];let FC=[],fdk='',fcs=[],fi=0,vira=false;
+const deckDe=c=>(c.disciplina||'Geral').split(' · ')[0];
+const topDe=c=>(c.disciplina||'').split(' · ').slice(1).join(' · ');
+const dataBR=d=>new Date(d+'T12:00').toLocaleDateString('pt-BR');
 async function fc(){
-  const {data,error}=await sb.from('flashcards').select('*').lte('revisar_em',hoje()).order('revisar_em').limit(100);
-  if(error)return $('#fbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
-  fcs=data||[];fi=0;fcShow();
+  FC=await tudo('flashcards','*');
+  const cont={};FC.forEach(c=>{const d=deckDe(c);cont[d]=(cont[d]||0)+1});
+  const nomes=Object.keys(cont).sort();
+  if(!nomes.length){
+    $('#fsub').textContent='Cartões de memorização com pergunta e resposta. Clique no cartão para virar.';
+    $('#fchips').innerHTML='';
+    $('#fbox').innerHTML='<div class="card">Nenhum flashcard encontrado. Adicione um abaixo ou confira se a tabela foi criada e os cartões foram importados no Supabase.</div>';
+    return;
+  }
+  if(!nomes.includes(fdk))fdk=nomes[0];
+  $('#fchips').innerHTML=nomes.map(n=>`<button class="chip${n===fdk?' on':''}" data-d="${esc(n)}"><span>${esc(n)}</span><small>${cont[n]}</small></button>`).join('');
+  document.querySelectorAll('#fchips .chip').forEach(b=>b.onclick=()=>{fdk=b.dataset.d;fcMonta()});
+  fcMonta();
+}
+function fcMonta(){
+  document.querySelectorAll('#fchips .chip').forEach(b=>b.classList.toggle('on',b.dataset.d===fdk));
+  fcs=FC.filter(c=>deckDe(c)===fdk).sort((a,b)=>a.revisar_em<b.revisar_em?-1:a.revisar_em>b.revisar_em?1:a.id-b.id);
+  fi=0;vira=false;fcShow();
 }
 function fcShow(){
-  const b=$('#fbox');
-  if(fi>=fcs.length)return b.innerHTML='<div class="card">Nenhum flashcard para revisar agora. Adicione novos acima.</div>';
-  const c=fcs[fi];
-  b.innerHTML=`<div class="card"><p class="mut">Cartão ${fi+1} de ${fcs.length}${c.disciplina?' · '+esc(c.disciplina):''}</p><p>${esc(c.frente).replace(/\n/g,'<br>')}</p><div id="vv"></div><div id="vb"><button class="btn p" id="vr">Mostrar resposta</button></div></div>`;
-  $('#vr').onclick=()=>{
-    $('#vv').innerHTML=`<div class="fb">${esc(c.verso).replace(/\n/g,'<br>')}</div>`;
-    $('#vb').innerHTML='<p style="display:flex;gap:8px"><button class="btn" id="fe">Errei</button><button class="btn p" id="fa">Acertei</button></p>';
-    $('#fe').onclick=()=>fcRes(c,false);$('#fa').onclick=()=>fcRes(c,true);
-  };
+  const b=$('#fbox'),h=hoje(),dev=fcs.filter(x=>x.revisar_em<=h).length;
+  $('#fsub').textContent='Cartões de memorização com pergunta e resposta. Clique no cartão para virar.'+(dev?' · '+dev+' para revisar hoje':'');
+  if(!fcs.length)return b.innerHTML='<div class="card">Nenhum cartão neste baralho.</div>';
+  fi=Math.min(Math.max(fi,0),fcs.length-1);
+  const c=fcs[fi],due=c.revisar_em<=h,top=topDe(c);
+  b.innerHTML=`<button class="fcard${vira?' back':''}" id="fcard" type="button"><span class="flab">${vira?'Resposta':'Pergunta'} · ${esc(fdk)}${top?' · '+esc(top):''}</span><span class="ftxt">${esc(vira?c.verso:c.frente).replace(/\n/g,'<br>')}</span><span class="fhint">${vira?'clique para voltar à pergunta':'👆 clique para ver a resposta'}</span></button>
+  ${vira?'<div class="frate"><button class="btn bad" id="fe" type="button">Errei</button><button class="btn p" id="fa" type="button">Acertei</button></div>':`<p class="mut fdue">${due?'🔔 Para revisar hoje':'Próxima revisão em '+dataBR(c.revisar_em)}</p>`}
+  <div class="fnav"><button class="btn" id="fant" type="button"${fi?'':' disabled'}>← Anterior</button><b class="mut">${fi+1} / ${fcs.length}</b><button class="btn" id="fprox" type="button"${fi<fcs.length-1?'':' disabled'}>Próximo →</button></div>`;
+  $('#fcard').onclick=()=>{vira=!vira;fcShow()};
+  $('#fant').onclick=()=>{fi--;vira=false;fcShow()};
+  $('#fprox').onclick=()=>{fi++;vira=false;fcShow()};
+  if(vira){$('#fe').onclick=()=>fcRes(c,false);$('#fa').onclick=()=>fcRes(c,true)}
 }
-async function fcRes(c,ok){
+function fcRes(c,ok){
   const cx=ok?Math.min(c.caixa+1,5):1,d=new Date();d.setDate(d.getDate()+INT[cx-1]);
-  await sb.from('flashcards').update({caixa:cx,revisar_em:d.toLocaleDateString('sv-SE')}).eq('id',c.id);
-  fi++;fcShow();
+  c.caixa=cx;c.revisar_em=d.toLocaleDateString('sv-SE');
+  sb.from('flashcards').update({caixa:cx,revisar_em:c.revisar_em}).eq('id',c.id).then(()=>{},()=>{});
+  vira=false;if(fi<fcs.length-1)fi++;fcShow();
 }
+document.addEventListener('keydown',e=>{
+  if($('#v-f').hidden||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||!fcs.length)return;
+  if(e.key==='ArrowRight'&&fi<fcs.length-1){fi++;vira=false;fcShow()}
+  if(e.key==='ArrowLeft'&&fi>0){fi--;vira=false;fcShow()}
+});
 $('#fadd').onclick=async()=>{
   const f=$('#ff').value.trim(),v=$('#fv').value.trim();if(!f||!v)return;
   await sb.from('flashcards').insert({frente:f,verso:v,disciplina:$('#fdc').value.trim()||null});
