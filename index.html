@@ -78,6 +78,31 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
  #tabs .sm{display:block;font-size:.66rem}
  #tabs button.on{background:var(--acl);color:var(--ac)}
 }
+/* menu lateral em verde forte */
+:root{--side:#2e6b48}
+[data-theme=dark]{--side:#1f4d36}
+#tabs{background:var(--side);border-color:transparent}
+#tabs button{color:rgba(255,255,255,.82)}
+#tabs button:hover{background:rgba(255,255,255,.12)}
+#tabs button.on{background:rgba(255,255,255,.22);color:#fff;font-weight:700}
+/* banco de questões */
+.fcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.fc{position:relative;display:flex;flex-direction:column;gap:6px;min-height:210px;padding:20px;border:0;border-radius:18px;text-align:left;cursor:pointer;color:#fff;font:inherit;background:linear-gradient(135deg,var(--c1,#0b5a44),var(--c2,#17b394));box-shadow:0 10px 24px rgba(0,0,0,.18);transition:transform .15s}
+.fc:hover{transform:translateY(-3px)}
+.fc.fx{--c1:#0b5a44;--c2:#17a085}
+.fc .ic{font-size:2.1rem;line-height:1}
+.fc b{font:700 1.3rem/1.2 var(--ui)}
+.fc .sub{font-size:.92rem;opacity:.95}
+.fc .pill{align-self:flex-start;margin-top:auto;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);font-size:.85rem;font-weight:600}
+.fc .arr{position:absolute;right:18px;bottom:16px;font-size:1.4rem}
+.fc .bd{position:absolute;top:14px;right:14px;padding:2px 10px;border-radius:999px;background:#fff;color:#2b2b2b;font-size:.72rem;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:10px 16px;border-radius:999px;cursor:pointer;font-weight:500}
+.chip:hover{border-color:var(--ac)}
+.chip small{margin-left:8px;color:var(--mut)}
+.chip.on{background:var(--ac);color:var(--onac);border-color:var(--ac)}
+.chip.on small{color:inherit;opacity:.85}
+@media(prefers-reduced-motion:reduce){.fc{transition:none}.fc:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -109,12 +134,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <main>
   <section id="v-i"><div id="ibox"></div></section>
   <section id="v-q" hidden>
-    <div class="row">
-      <select id="fd"></select><select id="fb"></select><select id="fa"></select>
-      <select id="ft"><option value="">Todos os formatos</option><option value="certo_errado">Certo ou errado</option><option value="multipla_escolha">Múltipla escolha</option></select>
-      <button class="btn p" id="buscar">Buscar questões</button>
+    <div id="qhome"></div>
+    <div id="qfront" hidden>
+      <button class="ghost" id="qback" type="button">← Trocar de frente</button>
+      <h2 class="hi" id="qtit" style="margin-top:12px"></h2>
+      <p class="mut" style="margin:-8px 0 12px">Escolha um assunto para começar. Você pode refinar por banca e formato.</p>
+      <div class="chips" id="qchips"></div>
+      <div class="row" style="margin-top:14px"><select id="fb"></select><select id="ft"><option value="">Todos os formatos</option><option value="certo_errado">Certo ou errado</option><option value="multipla_escolha">Múltipla escolha</option></select></div>
     </div>
-    <div id="qbox"><p class="mut">Escolha os filtros e clique em "Buscar questões".</p></div>
+    <div id="qbox"></div>
   </section>
 
   <section id="v-s" hidden>
@@ -180,31 +208,64 @@ async function entrar(){
 function ver(v){
   document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   ['i','q','s','e','f','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
-  if(v==='i')inicio();if(v==='e')hist();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
+  if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')hist();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
 }
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
 /* ---------- filtros ---------- */
 async function filtros(){
   const {data}=await sb.from('questoes').select('disciplina,banca,assunto').limit(5000);
-  const u=k=>[...new Set((data||[]).map(r=>r[k]).filter(Boolean))].sort();
-  const fill=(id,nome,k)=>$(id).innerHTML=`<option value="">${nome}</option>`+u(k).map(v=>`<option>${esc(v)}</option>`).join('');
-  fill('#fd','Todas as disciplinas','disciplina');fill('#fb','Todas as bancas','banca');
-  fill('#fa','Todos os assuntos','assunto');fill('#sd','Todas as disciplinas','disciplina');
+  bq=data||[];
+  const u=k=>[...new Set(bq.map(r=>r[k]).filter(Boolean))].sort();
+  $('#fb').innerHTML='<option value="">Todas as bancas</option>'+u('banca').map(v=>`<option>${esc(v)}</option>`).join('');
+  $('#sd').innerHTML='<option value="">Todas as disciplinas</option>'+u('disciplina').map(v=>`<option>${esc(v)}</option>`).join('');
 }
+const CORES=[['#8a3d12','#d98a0a'],['#27278a','#7c3aed'],['#a3224a','#e8527a'],['#0f5f8a','#2fa8dc'],['#5b3a8a','#c05ad8']];
+const ico=n=>/qu[ií]m/i.test(n)?'⚗️':/portugu|reda/i.test(n)?'📖':/matem|racioc/i.test(n)?'🧮':/legisl|direito|const/i.test(n)?'⚖️':/f[ií]s/i.test(n)?'🧲':/bio/i.test(n)?'🧬':/hist/i.test(n)?'🏛️':/geo/i.test(n)?'🌎':'📚';
+let bq=[],fd='',fa='',iniciou=false;
+function bancoHome(){
+  iniciou=false;fila=[];$('#qbox').innerHTML='';$('#qfront').hidden=true;$('#qhome').hidden=false;
+  const ds={};bq.forEach(r=>{const d=ds[r.disciplina]=ds[r.disciplina]||{n:0,as:{}};d.n++;if(r.assunto)d.as[r.assunto]=1});
+  const nomes=Object.keys(ds).sort();
+  const card=(i,ic,t,sub,pill,go)=>`<button class="fc" style="--c1:${CORES[i%5][0]};--c2:${CORES[i%5][1]}" data-go="${esc(go)}"><span class="ic">${ic}</span><b>${esc(t)}</b><span class="sub">${esc(sub)}</span><span class="pill">${pill}</span><span class="arr">➜</span></button>`;
+  let h=nomes.map((n,i)=>{const a=Object.keys(ds[n].as);return card(i,ico(n),n,a.length?a.slice(0,3).join(', ')+(a.length>3?' e mais '+(a.length-3):''):'Todos os assuntos',ds[n].n+' questões','d:'+n)}).join('');
+  if(nomes.length>1)h=card(nomes.length,'🗂️','Todas as disciplinas','Todos os assuntos em uma só lista.',bq.length+' questões','d:*')+h;
+  h+='<button class="fc fx" data-go="x:d"><span class="bd">MEU</span><span class="ic">📊</span><b>Meu desempenho</b><span class="sub">Seus acertos e erros por disciplina e assunto: veja o que revisar.</span><span class="pill">acompanhe sua evolução</span><span class="arr">➜</span></button>';
+  $('#qhome').innerHTML=`<h2 class="hi">Banco de Questões</h2><p class="mut" style="margin:-8px 0 14px">Escolha uma frente de estudo. Depois filtre por assunto.</p><div class="fcs">${bq.length?h:'<p class="mut">O banco ainda está vazio. Importe as questões no Supabase.</p>'}</div>`;
+  document.querySelectorAll('#qhome [data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;g==='x:d'?ver('d'):frente(g.slice(2))});
+}
+function frente(d){
+  fd=d==='*'?'':d;fa='';iniciou=false;
+  $('#qhome').hidden=true;$('#qfront').hidden=false;$('#qbox').innerHTML='';
+  $('#qtit').textContent=d==='*'?'Todas as disciplinas':d;
+  const base=bq.filter(r=>!fd||r.disciplina===fd),c={};
+  base.forEach(r=>{if(r.assunto)c[r.assunto]=(c[r.assunto]||0)+1});
+  const chip=(v,l,n)=>`<button class="chip" data-a="${esc(v)}">${esc(l)}<small>${n}</small></button>`;
+  $('#qchips').innerHTML=chip('','Todos os assuntos',base.length)+Object.entries(c).sort().map(([a,n])=>chip(a,a,n)).join('');
+  document.querySelectorAll('#qchips .chip').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#qchips .chip').forEach(x=>x.classList.toggle('on',x===b));
+    fa=b.dataset.a;iniciou=true;buscar();
+  });
+}
+$('#qback').onclick=bancoHome;
+$('#fb').onchange=$('#ft').onchange=()=>{if(iniciou)buscar()};
 
 /* ---------- questões ---------- */
 function opcoes(q){
   if(q.alternativas&&Object.keys(q.alternativas).length)return Object.entries(q.alternativas);
   return [['C','Certo'],['E','Errado']];
 }
-$('#buscar').onclick=async()=>{
+async function buscar(){
   let r=sb.from('questoes').select('*').limit(300);
-  [['#fd','disciplina'],['#fb','banca'],['#fa','assunto'],['#ft','tipo']].forEach(([id,c])=>{if($(id).value)r=r.eq(c,$(id).value)});
+  if(fd)r=r.eq('disciplina',fd);
+  if(fa)r=r.eq('assunto',fa);
+  if($('#fb').value)r=r.eq('banca',$('#fb').value);
+  if($('#ft').value)r=r.eq('tipo',$('#ft').value);
   const {data,error}=await r;
   if(error)return $('#qbox').innerHTML='<p class="mut">Erro ao buscar: '+esc(error.message)+'</p>';
   fila=shuf(data||[]);idx=0;mostrar();
-};
+  $('#qbox').scrollIntoView({block:'start'});
+}
 function mostrar(){
   const b=$('#qbox');
   if(!fila.length)return b.innerHTML='<p class="mut">Nenhuma questão encontrada com esses filtros.</p>';
@@ -281,7 +342,7 @@ $('#so').onchange=hist;
 $('#refazer').onclick=async()=>{
   const {data}=await sb.from('respostas').select('correta,questoes(*)').eq('correta',false).limit(500);
   const m=new Map();(data||[]).forEach(r=>r.questoes&&m.set(r.questoes.id,r.questoes));
-  fila=shuf([...m.values()]);idx=0;ver('q');mostrar();
+  fila=shuf([...m.values()]);idx=0;ver('q');$('#qhome').hidden=true;$('#qfront').hidden=true;mostrar();
 };
 
 /* ---------- desempenho ---------- */
