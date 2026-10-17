@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Questões de Concurso</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:light;--bg:#eef3ee;--card:#fff;--tx:#17251d;--mut:#62756a;--ac:#2e6b48;--onac:#fff;--acl:#e3efe7;--ok:#1f8a4c;--okbg:#dff3e6;--er:#c0392b;--erbg:#fbe4e1;--bd:#d6e0d8;--sh:0 1px 2px rgba(20,40,28,.06),0 8px 22px rgba(20,40,28,.07);--ui:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--ser:"Source Serif 4",Georgia,"Times New Roman",serif}
+:root{color-scheme:light;--bg:#eef3ee;--card:#fff;--tx:#17251d;--mut:#62756a;--ac:#2e6b48;--onac:#fff;--acl:#e3efe7;--ok:#1f8a4c;--okbg:#dff3e6;--er:#c0392b;--erbg:#fbe4e1;--bd:#d6e0d8;--sh:0 1px 2px rgba(20,40,28,.06),0 8px 22px rgba(20,40,28,.07);--ui:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;--ser:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif}
 [data-theme=dark]{color-scheme:dark;--bg:#0f1713;--card:#17221c;--tx:#e5eee8;--mut:#8da296;--ac:#5fbf86;--onac:#0f1713;--acl:#1f3328;--ok:#52c57f;--okbg:#173a26;--er:#ef7b6d;--erbg:#3d1f1b;--bd:#2b3d33;--sh:none}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -106,6 +106,47 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .nav .btn{flex:0 0 auto}
 .nav #prox,.nav #pular{margin-left:auto}
+/* banco de questões: layout em duas colunas, questão em verde */
+.banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;margin-bottom:16px;border-radius:18px;color:#fff;background:linear-gradient(120deg,#1b4631,#2e6b48 55%,#3f8a5f)}
+.banner b{font-size:1.15rem}
+.banner span{opacity:.8;font-size:.9rem}
+.banner .ghost{margin-left:auto;color:#fff;border-color:rgba(255,255,255,.45)}
+.banner .ghost:hover{background:rgba(255,255,255,.15);color:#fff}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+.qgrid.solo{grid-template-columns:1fr}
+.stack{display:flex;flex-direction:column;gap:8px}
+.stack select{padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
+.chips.col{flex-direction:column;gap:8px}
+.chips.col .chip{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border-radius:14px}
+.chip small{background:var(--acl);color:var(--ac);border-radius:999px;padding:1px 10px;font-weight:700;font-size:.8rem;margin-left:0}
+.chip.on small{background:rgba(255,255,255,.25);color:inherit;opacity:1}
+.qcard{padding:24px;border-radius:22px;color:#fff;background:linear-gradient(160deg,#1b4631,#2e6b48);box-shadow:0 12px 30px rgba(20,60,40,.28)}
+.qtop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.qpill{display:inline-block;padding:5px 14px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.rst{border:0;background:none;color:rgba(255,255,255,.85);font-weight:700;cursor:pointer;font-size:.9rem}
+.qn{margin:12px 0 0;font-size:.85rem;color:rgba(255,255,255,.75)}
+.qe{margin:8px 0 18px;font-size:1.12rem;line-height:1.6;font-weight:500}
+.qcard .alt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:14px;padding:14px 16px;margin:9px 0;font-weight:500}
+.qcard .alt:hover:not(:disabled){background:rgba(255,255,255,.15);border-color:#fff}
+.qcard .alt b{flex:0 0 22px;width:auto;height:auto;border-radius:0;background:none;color:rgba(255,255,255,.7);font-size:1rem;display:block}
+.qcard .alt.ok{background:rgba(110,231,160,.28);border-color:#86efac}
+.qcard .alt.er{background:rgba(248,113,113,.28);border-color:#fca5a5}
+.qcard .alt.ok b,.qcard .alt.er b{background:none;color:#fff}
+.qcard .alt:disabled{color:#fff}
+.qcard .fb{background:rgba(255,255,255,.14);border-left-color:#86efac;color:#fff}
+.skip{margin-top:10px;padding:10px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.5);background:transparent;color:#fff;cursor:pointer}
+.qfoot{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2)}
+.nb{padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:700;cursor:pointer}
+.nb.p{background:#fff;color:#1b4631;border-color:#fff}
+.nb:disabled{opacity:.4;cursor:default}
+.qc{text-align:center;line-height:1.25}.qc b{display:block}.qc span{font-size:.75rem;opacity:.8}
+#stopw{position:fixed;right:18px;bottom:18px;z-index:6;display:flex;align-items:center;gap:8px;padding:10px 16px;border:0;border-radius:999px;background:#0e1a13;color:#fff;font:700 .95rem var(--ui);font-variant-numeric:tabular-nums;box-shadow:0 8px 22px rgba(0,0,0,.3);cursor:pointer}
+#stopw .dot{width:9px;height:9px;border-radius:50%;background:#9aa8a0}
+#stopw .dot.on{background:#34d399;animation:pls 1.4s infinite}
+@keyframes pls{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){#stopw .dot.on{animation:none}}
+@media(max-width:1180px){.qgrid{grid-template-columns:1fr}.qside{order:-1}.chips.col{max-height:180px;overflow:auto}}
+@media(max-width:640px){#stopw{bottom:84px}.qcard{padding:18px}}
 </style>
 </head>
 <body>
@@ -134,18 +175,24 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   <button data-v="c"><span class="ic">📅</span><span class="lg">Cronograma</span><span class="sm">Plano</span></button>
   <button data-v="d"><span class="ic">📊</span><span class="lg">Meu desempenho</span><span class="sm">Dados</span></button>
 </nav>
+<button id="stopw" type="button" hidden title="Toque para pausar ou continuar o cronômetro" aria-label="Cronômetro de estudo"></button>
 <main>
   <section id="v-i"><div id="ibox"></div></section>
   <section id="v-q" hidden>
     <div id="qhome"></div>
     <div id="qfront" hidden>
-      <button class="ghost" id="qback" type="button">← Trocar de frente</button>
-      <h2 class="hi" id="qtit" style="margin-top:12px"></h2>
-      <p class="mut" style="margin:-8px 0 12px">Escolha um assunto para começar. Você pode refinar por banca e formato.</p>
-      <div class="chips" id="qchips"></div>
-      <div class="row" style="margin-top:14px"><select id="fb"></select><select id="ft"><option value="">Todos os formatos</option><option value="certo_errado">Certo ou errado</option><option value="multipla_escolha">Múltipla escolha</option></select></div>
+      <div class="banner"><b id="qtit"></b><span>· Banco de Questões</span><button class="ghost" id="qback" type="button">← Trocar de frente</button></div>
+      <div class="qgrid" id="qgrid">
+        <div id="qbox"></div>
+        <aside class="card qside" id="qside">
+          <h3 style="margin:0">📌 Assuntos</h3>
+          <p class="mut" style="margin:0 0 12px">Toque para trocar</p>
+          <div class="chips col" id="qchips"></div>
+          <p class="mut" style="margin:16px 0 6px">Refinar</p>
+          <div class="stack"><select id="fb"></select><select id="ft"><option value="">Todos os formatos</option><option value="certo_errado">Certo ou errado</option><option value="multipla_escolha">Múltipla escolha</option></select></div>
+        </aside>
+      </div>
     </div>
-    <div id="qbox"></div>
   </section>
 
   <section id="v-s" hidden>
@@ -211,7 +258,7 @@ async function entrar(){
 function ver(v){
   document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   ['i','q','s','e','f','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
-  if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')hist();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
+  if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')hist();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
 }
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
@@ -227,9 +274,9 @@ async function filtros(){
 const pend=()=>bqAll.filter(x=>!feitas.has(x.id));
 const CORES=[['#8a3d12','#d98a0a'],['#27278a','#7c3aed'],['#a3224a','#e8527a'],['#0f5f8a','#2fa8dc'],['#5b3a8a','#c05ad8']];
 const ico=n=>/qu[ií]m/i.test(n)?'⚗️':/portugu|reda/i.test(n)?'📖':/matem|racioc/i.test(n)?'🧮':/legisl|direito|const/i.test(n)?'⚖️':/f[ií]s/i.test(n)?'🧲':/bio/i.test(n)?'🧬':/hist/i.test(n)?'🏛️':/geo/i.test(n)?'🌎':'📚';
-let bqAll=[],feitas=new Set(),fd='',fa='',iniciou=false;
+let bqAll=[],feitas=new Set(),fd='',fa='',iniciou=false,modoErros=false;
 function bancoHome(){
-  const bq=pend();iniciou=false;fila=[];$('#qbox').innerHTML='';$('#qfront').hidden=true;$('#qhome').hidden=false;
+  const bq=pend();iniciou=false;modoErros=false;tmPause();$('#stopw').hidden=true;fila=[];$('#qbox').innerHTML='';$('#qfront').hidden=true;$('#qhome').hidden=false;
   const ds={};bq.forEach(r=>{const d=ds[r.disciplina]=ds[r.disciplina]||{n:0,as:{}};d.n++;if(r.assunto)d.as[r.assunto]=1});
   const nomes=Object.keys(ds).sort();
   const card=(i,ic,t,sub,pill,go)=>`<button class="fc" style="--c1:${CORES[i%5][0]};--c2:${CORES[i%5][1]}" data-go="${esc(go)}"><span class="ic">${ic}</span><b>${esc(t)}</b><span class="sub">${esc(sub)}</span><span class="pill">${pill}</span><span class="arr">➜</span></button>`;
@@ -240,9 +287,10 @@ function bancoHome(){
   document.querySelectorAll('#qhome [data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;g==='x:d'?ver('d'):frente(g.slice(2))});
 }
 function frente(d){
-  fd=d==='*'?'':d;fa='';iniciou=false;
-  $('#qhome').hidden=true;$('#qfront').hidden=false;$('#qbox').innerHTML='';
-  $('#qtit').textContent=d==='*'?'Todas as disciplinas':d;
+  fd=d==='*'?'':d;fa='';iniciou=false;modoErros=false;
+  $('#qhome').hidden=true;$('#qfront').hidden=false;$('#qside').hidden=false;$('#qgrid').classList.remove('solo');
+  $('#qbox').innerHTML='<div class="qcard"><p class="qe">Escolha um assunto na lista para começar.</p></div>';
+  $('#qtit').textContent=d==='*'?'🗂️ Todas as disciplinas':ico(d)+' '+d;
   const base=pend().filter(r=>!fd||r.disciplina===fd),c={};
   base.forEach(r=>{if(r.assunto)c[r.assunto]=(c[r.assunto]||0)+1});
   const chip=(v,l,n)=>`<button class="chip" data-a="${esc(v)}">${esc(l)}<small>${n}</small></button>`;
@@ -253,6 +301,14 @@ function frente(d){
   });
 }
 $('#qback').onclick=bancoHome;
+let tmS=0,tmRun=false,tmI=null;
+const tmFmt=()=>[Math.floor(tmS/3600),Math.floor(tmS%3600/60),tmS%60].map(n=>String(n).padStart(2,'0')).join(':');
+function tmDraw(){$('#stopw').innerHTML=`<i class="dot${tmRun?' on':''}"></i>${tmFmt()}`}
+function tmStart(){if(tmI)return;tmRun=true;tmI=setInterval(()=>{tmS++;tmDraw()},1000);tmDraw()}
+function tmPause(){clearInterval(tmI);tmI=null;tmRun=false;tmDraw()}
+function tmReset(){tmPause();tmS=0;tmDraw()}
+$('#stopw').onclick=()=>tmRun?tmPause():tmStart();
+tmDraw();
 $('#fb').onchange=$('#ft').onchange=()=>{if(iniciou)buscar()};
 
 /* ---------- questões ---------- */
@@ -270,29 +326,32 @@ async function buscar(){
   if(error)return $('#qbox').innerHTML='<p class="mut">Erro ao buscar: '+esc(error.message)+'</p>';
   const tds=data||[];fila=shuf(tds.filter(x=>!feitas.has(x.id)));idx=0;
   if(!fila.length&&tds.length){$('#qbox').innerHTML='<div class="card">Você já respondeu todas as questões deste filtro. Revise os erros no Caderno de Erros.</div>';return}
-  mostrar();
+  $('#stopw').hidden=false;tmStart();mostrar();
   $('#qbox').scrollIntoView({block:'start'});
 }
 const resp={},pul=new Set();
 const fbHTML=(q,l)=>`<div class="fb"><b>${l===q.gabarito?'Correto!':'Errado.'}</b> Gabarito: ${esc(q.gabarito)}.${q.comentario?'<br>'+esc(q.comentario).replace(/\n/g,'<br>'):''}</div>`;
 function mostrar(){
-  const b=$('#qbox');
-  if(!fila.length)return b.innerHTML='<p class="mut">Nenhuma questão encontrada com esses filtros.</p>';
+  const b=$('#qbox'),msg=t=>b.innerHTML='<div class="qcard"><p class="qe">'+t+'</p></div>';
+  if(!fila.length)return msg('Nenhuma questão encontrada com esses filtros.');
   if(idx>=fila.length){
-    b.innerHTML='<div class="card">Você terminou esta lista de '+fila.length+' questões.</div><button class="btn" id="ant">← Voltar à última questão</button>';
+    b.innerHTML='<div class="qcard"><p class="qe">Você terminou esta lista de '+fila.length+' questões.</p><div class="qfoot"><button class="nb" id="ant" type="button">← Voltar à última</button><span></span><span></span></div></div>';
     $('#ant').onclick=()=>{idx--;mostrar()};return;
   }
-  const q=fila[idx],a=resp[q.id],falt=fila.filter(x=>pul.has(x.id)&&!resp[x.id]).length;
-  b.innerHTML=`<div class="card"><p class="mut">Questão ${idx+1} de ${fila.length}${falt?` · ${falt} pulada${falt>1?'s':''} para depois`:''}</p>
-  <p><span class="tag">${esc(q.banca)}</span><span class="tag">${esc(q.disciplina)}</span>${q.assunto?`<span class="tag">${esc(q.assunto)}</span>`:''}${q.ano?`<span class="tag">${q.ano}</span>`:''}</p>
-  <p>${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
+  const q=fila[idx],a=resp[q.id],fei=fila.filter(x=>resp[x.id]).length,falt=fila.filter(x=>pul.has(x.id)&&!resp[x.id]).length;
+  b.innerHTML=`<div class="qcard">
+  <div class="qtop"><span class="qpill">${esc(q.disciplina)}${q.assunto?' · '+esc(q.assunto):''}</span>${modoErros?'':'<button class="rst" id="reiniciar" type="button">↻ Reiniciar</button>'}</div>
+  <p class="qn">Questão ${idx+1} de ${fila.length} · ${esc(q.banca)}${q.ano?' · '+q.ano:''}${falt?` · ${falt} pulada${falt>1?'s':''}`:''}</p>
+  <p class="qe">${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
   <div id="alts">${opcoes(q).map(([l,t])=>`<button class="alt${a?(l===q.gabarito?' ok':l===a?' er':''):''}" data-l="${esc(l)}"${a?' disabled':''}><b>${esc(l)}</b> ${t===l?'':esc(t)}</button>`).join('')}</div>
   <div id="fbk">${a?fbHTML(q,a):''}</div>
-  <div class="nav">${idx>0?'<button class="btn" id="ant">← Anterior</button>':''}${a?'<button class="btn p" id="prox">Próxima questão →</button>':'<button class="btn" id="pular">Pular para depois ↪</button>'}</div></div>`;
+  ${a?'':'<button class="skip" id="pular" type="button">Pular para depois ↪</button>'}
+  <div class="qfoot"><button class="nb" id="ant" type="button"${idx?'':' disabled'}>← Anterior</button><div class="qc"><b>${idx+1} / ${fila.length}</b><span>${fei} respondida${fei===1?'':'s'}</span></div><button class="nb p" id="prox" type="button"${a?'':' disabled'}>Próxima →</button></div></div>`;
   b.querySelectorAll('.alt').forEach(x=>x.onclick=()=>responder(x.dataset.l));
-  if($('#ant'))$('#ant').onclick=()=>{idx--;mostrar()};
-  if($('#prox'))$('#prox').onclick=()=>{idx++;mostrar()};
+  $('#ant').onclick=()=>{idx--;mostrar()};
+  $('#prox').onclick=()=>{idx++;mostrar()};
   if($('#pular'))$('#pular').onclick=pular;
+  if($('#reiniciar'))$('#reiniciar').onclick=()=>{tmReset();pul.clear();buscar()};
 }
 function pular(){
   const q=fila[idx];
@@ -357,7 +416,7 @@ $('#so').onchange=hist;
 $('#refazer').onclick=async()=>{
   const {data}=await sb.from('respostas').select('correta,questoes(*)').eq('correta',false).limit(500);
   const m=new Map();(data||[]).forEach(r=>r.questoes&&m.set(r.questoes.id,r.questoes));
-  fila=shuf([...m.values()]);fila.forEach(x=>delete resp[x.id]);idx=0;ver('q');$('#qhome').hidden=true;$('#qfront').hidden=true;mostrar();
+  fila=shuf([...m.values()]);fila.forEach(x=>delete resp[x.id]);idx=0;ver('q');$('#qhome').hidden=true;$('#qfront').hidden=false;$('#qside').hidden=true;$('#qgrid').classList.add('solo');$('#qtit').textContent='📓 Refazendo erros';modoErros=true;$('#stopw').hidden=false;tmStart();mostrar();
 };
 
 /* ---------- desempenho ---------- */
