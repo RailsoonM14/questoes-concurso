@@ -155,6 +155,20 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .chip small{font-size:.72rem;padding:0 8px}
 .stack select{padding:7px 9px;font-size:.84rem}
 @media(max-width:1180px){.qgrid{grid-template-columns:1fr}.chips.col{max-height:160px}}
+/* caderno de erros */
+.sc{text-align:center;padding:18px 10px;margin:0}
+.sc i{font-style:normal;font-size:1.5rem;display:block}
+.sc b{display:block;font:800 1.9rem/1.2 var(--ui)}
+.sc span{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.trow+.trow{border-top:1px solid var(--bd)}
+.trow{padding:14px 0}
+.thead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.terr{color:var(--er);font-weight:700;white-space:nowrap;font-size:.9rem}
+.bar.red i{background:var(--er)}
+.tbtn{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn.sm{padding:7px 14px;font-size:.85rem;border-radius:999px}
+.btn:disabled{opacity:.45;cursor:default}
+details.card summary{cursor:pointer;font-weight:700}
 </style>
 </head>
 <body>
@@ -217,11 +231,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   </section>
 
   <section id="v-e" hidden>
-    <div class="row">
-      <label style="flex:1;border:0;background:none"><input type="checkbox" id="so" style="min-width:0" checked> Mostrar só os erros</label>
-      <button class="btn p" id="refazer">Refazer erros</button>
-    </div>
-    <div id="hbox"></div>
+    <div id="ebox"></div>
+    <details class="card" id="ehist" style="margin-top:14px">
+      <summary>Histórico de respostas</summary>
+      <div class="row" style="margin-top:12px">
+        <label style="flex:1;border:0;background:none"><input type="checkbox" id="so" style="min-width:0" checked> Mostrar só os erros</label>
+        <button class="btn p" id="refazer">Refazer todos os erros</button>
+      </div>
+      <div id="hbox"></div>
+    </details>
   </section>
 
   <section id="v-d" hidden><div id="dbox"></div></section>
@@ -266,15 +284,15 @@ async function entrar(){
 function ver(v){
   document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   ['i','q','s','e','f','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
-  if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')hist();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
+  if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')caderno();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
 }
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
 /* ---------- filtros ---------- */
 async function tudo(t,cols){let o=[];for(let f=0;;f+=1000){const {data}=await sb.from(t).select(cols).order('id').range(f,f+999);if(!data)break;o=o.concat(data);if(data.length<1000)break}return o}
 async function filtros(){
-  const [q,r]=await Promise.all([tudo('questoes','id,disciplina,banca,assunto,gabarito'),tudo('respostas','id,questao_id,resposta')]);
-  bqAll=q;r.forEach(x=>{resp[x.questao_id]=x.resposta});
+  const [q,r]=await Promise.all([tudo('questoes','id,disciplina,banca,assunto,gabarito'),tudo('respostas','id,questao_id,resposta,correta')]);
+  bqAll=q;r.forEach(x=>{resp[x.questao_id]=x.resposta;if(x.correta===false)errou.add(x.questao_id)});
   const u=k=>[...new Set(bqAll.map(x=>x[k]).filter(Boolean))].sort();
   $('#fb').innerHTML='<option value="">Todas as bancas</option>'+u('banca').map(v=>`<option>${esc(v)}</option>`).join('');
   $('#sd').innerHTML='<option value="">Todas as disciplinas</option>'+u('disciplina').map(v=>`<option>${esc(v)}</option>`).join('');
@@ -336,7 +354,7 @@ async function buscar(){
   $('#stopw').hidden=false;tmStart();mostrar();
   $('#qbox').scrollIntoView({block:'start'});
 }
-const resp={},redo=new Set(),rsp=x=>redo.has(x.id)?undefined:resp[x.id];
+const resp={},errou=new Set(),redo=new Set(),rsp=x=>redo.has(x.id)?undefined:resp[x.id];
 const fbHTML=(q,l)=>`<div class="fb"><b>${l===q.gabarito?'Correto!':'Errado.'}</b> Gabarito: ${esc(q.gabarito)}.${q.comentario?'<br>'+esc(q.comentario).replace(/\n/g,'<br>'):''}</div>`;
 function mostrar(){
   const b=$('#qbox'),msg=t=>b.innerHTML='<div class="qcard"><p class="qe">'+t+'</p></div>';
@@ -366,7 +384,7 @@ async function responder(l){
   const antes=resp[q.id],refaz=redo.has(q.id);
   resp[q.id]=l;redo.delete(q.id);mostrar();if(!modoErros)chips();
   const {error}=await sb.from('respostas').insert({questao_id:q.id,resposta:l,correta:l===q.gabarito});
-  if(error){if(antes===undefined)delete resp[q.id];else resp[q.id]=antes;if(refaz)redo.add(q.id);mostrar();if(!modoErros)chips();$('#fbk').innerHTML='<div class="fb">Não foi possível salvar a resposta: '+esc(error.message)+'</div>'}
+  if(error){if(antes===undefined)delete resp[q.id];else resp[q.id]=antes;if(refaz)redo.add(q.id);mostrar();if(!modoErros)chips();$('#fbk').innerHTML='<div class="fb">Não foi possível salvar a resposta: '+esc(error.message)+'</div>'}else if(l!==q.gabarito)errou.add(q.id);
 }
 
 /* ---------- simulado ---------- */
@@ -398,7 +416,7 @@ async function finalizar(){
   if(!sim)return;clearInterval(tick);
   const S=sim;sim=null;
   const linhas=[];let ac=0;
-  S.qs.forEach((q,i)=>{const l=S.resp[i];if(l){const ok=l===q.gabarito;if(ok)ac++;linhas.push({questao_id:q.id,simulado_id:S.id,resposta:l,correta:ok});resp[q.id]=l}});
+  S.qs.forEach((q,i)=>{const l=S.resp[i];if(l){const ok=l===q.gabarito;if(ok)ac++;linhas.push({questao_id:q.id,simulado_id:S.id,resposta:l,correta:ok});resp[q.id]=l;if(!ok)errou.add(q.id)}});
   if(linhas.length)await sb.from('respostas').insert(linhas);
   const nota=Math.round(ac/S.qs.length*1000)/10;
   await sb.from('simulados').update({finalizado_em:new Date().toISOString(),nota}).eq('id',S.id);
@@ -417,13 +435,35 @@ async function hist(){
   <p>Você marcou <b>${esc(r.resposta)}</b> · Gabarito <b>${esc(r.questoes.gabarito)}</b> · <b style="color:${r.correta?'var(--ok)':'var(--er)'}">${r.correta?'acertou':'errou'}</b></p></div>`).join(''):'<p class="mut">Nada por aqui ainda.</p>';
 }
 $('#so').onchange=hist;
-$('#refazer').onclick=async()=>{
-  const ids=bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).map(x=>x.id);
+/* ---------- caderno de erros ---------- */
+let G=[];
+function caderno(){
+  const g={};let ab=0,rec=0;
+  bqAll.forEach(x=>{const l=resp[x.id];if(!l)return;if(l!==x.gabarito){ab++;const k=x.disciplina+'\u0001'+(x.assunto||'');(g[k]=g[k]||{d:x.disciplina,a:x.assunto||'',n:0}).n++}else if(errou.has(x.id))rec++});
+  G=Object.values(g).sort((p,q)=>q.n-p.n);
+  const crit=G.filter(x=>x.n>=3).length,taxa=ab+rec?Math.round(rec/(ab+rec)*100):0,max=G.length?G[0].n:1;
+  const sc=(ic,n,l,c)=>`<div class="card sc"><i>${ic}</i><b style="color:${c}">${n}</b><span>${l}</span></div>`;
+  const linha=(x,i)=>{const nv=bqAll.filter(y=>y.disciplina===x.d&&(y.assunto||'')===x.a&&!resp[y.id]).length;
+    return `<div class="trow"><div class="thead"><div><b>${esc(x.a||'Sem assunto')}</b><div class="mut">${esc(x.d)}</div></div><span class="terr">● ${x.n} erro${x.n>1?'s':''}</span></div><div class="bar red"><i style="width:${Math.round(x.n/max*100)}%"></i></div><div class="tbtn"><button class="btn p sm" data-ref="${i}">🔁 Refazer as ${x.n}</button><button class="btn sm" data-new="${i}"${nv?'':' disabled'}>🧠 Questões novas${nv?' ('+nv+')':''}</button></div></div>`};
+  const vazio=Object.keys(resp).length?'Nenhum erro em aberto. Continue assim! 🎉':'Responda questões no Banco para acompanhar seus erros aqui.';
+  $('#ebox').innerHTML=`<div class="row" style="align-items:center"><h2 class="hi" style="margin:0;flex:1">📓 Caderno de Erros</h2>${ab?`<button class="btn p" id="refTodos">🔁 Refazer todos (${ab})</button>`:''}</div>
+  <div class="grid">${sc('❌',ab,'Erros em aberto','var(--er)')}${sc('🌡️',crit,'Assuntos críticos','#d98a0a')}${sc('✅',rec,'Já recuperados','var(--ok)')}${sc('📈',taxa+'%','Taxa de recuperação','var(--ac)')}</div>
+  <h3 style="margin:20px 0 4px">🌡️ Termômetro dos assuntos</h3>
+  <p class="mut" style="margin:0 0 12px">Os assuntos que mais derrubam você, do pior para o melhor. Assunto crítico é o que tem 3 ou mais erros em aberto. Uma questão é recuperada quando você a errou e depois acertou.</p>
+  <div class="card">${G.length?G.map(linha).join(''):'<p class="mut" style="margin:0">'+vazio+'</p>'}</div>`;
+  if($('#refTodos'))$('#refTodos').onclick=()=>$('#refazer').onclick();
+  document.querySelectorAll('#ebox [data-ref]').forEach(b=>b.onclick=()=>{const x=G[b.dataset.ref];refazer(bqAll.filter(y=>y.disciplina===x.d&&(y.assunto||'')===x.a&&resp[y.id]&&resp[y.id]!==y.gabarito).map(y=>y.id))});
+  document.querySelectorAll('#ebox [data-new]').forEach(b=>b.onclick=()=>{const x=G[b.dataset.new];abrirAssunto(x.d,x.a)});
+}
+function abrirAssunto(d,a){ver('q');frente(d);fa=a;iniciou=true;chips();buscar()}
+$('#ehist').ontoggle=()=>{if($('#ehist').open)hist()};
+async function refazer(ids){
   if(!ids.length){alert('Nenhum erro para refazer no momento.');return}
   let qs=[];for(let i=0;i<ids.length;i+=100){const {data}=await sb.from('questoes').select('*').in('id',ids.slice(i,i+100));qs=qs.concat(data||[])}
   ver('q');fila=shuf(qs);idx=0;redo.clear();fila.forEach(x=>redo.add(x.id));
   $('#qhome').hidden=true;$('#qfront').hidden=false;$('#qside').hidden=true;$('#qgrid').classList.add('solo');$('#qtit').textContent='📓 Refazendo erros';modoErros=true;$('#stopw').hidden=false;tmStart();mostrar();
-};
+}
+$('#refazer').onclick=()=>refazer(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).map(x=>x.id));
 
 /* ---------- desempenho ---------- */
 async function desemp(){
