@@ -210,6 +210,29 @@ details.card summary{cursor:pointer;font-weight:700}
 .edr input{width:20px;height:20px;accent-color:var(--ac)}
 .edr small{display:block;color:var(--mut);font-size:.8rem;margin-top:2px}
 .edr .n{color:var(--mut);font-weight:700;margin-right:6px}
+/* cronograma semanal */
+.wk{margin-bottom:22px}
+.wkh{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 18px;border-radius:18px 18px 0 0;color:#fff;background:linear-gradient(120deg,#1b4631,#2e6b48 55%,#3f8a5f)}
+.wkh b{flex:1;font-size:1.05rem}
+.wkb{background:#fff;color:#1b4631;border-radius:999px;padding:3px 12px;font-size:.78rem;font-weight:700}
+.wkg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;padding:12px;background:var(--card);border:1px solid var(--bd);border-top:0;border-radius:0 0 18px 18px;box-shadow:var(--sh)}
+.dy{min-height:96px;padding:8px;border:1px solid var(--bd);border-radius:12px;background:var(--bg)}
+.dy.ps{opacity:.8}
+.dy.hj{border:2px solid #f59e0b;background:var(--card);opacity:1}
+.dh{font-size:.72rem;font-weight:800;letter-spacing:.04em;text-align:center;color:var(--mut);margin-bottom:6px}
+.dy.hj .dh{color:var(--tx)}
+.dv{display:block;text-align:center;color:var(--bd)}
+.ck{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;margin-bottom:6px;padding:7px;border-radius:10px;background:var(--acl);color:var(--ac);font-size:.78rem;line-height:1.3}
+.ck.ok{background:var(--okbg);color:var(--ok)}
+.ck.pv{background:var(--erbg);color:var(--er)}
+.cok{flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid currentColor;background:transparent;color:inherit;cursor:pointer;font-size:.65rem;line-height:1;padding:0;display:grid;place-items:center}
+.ck.ok .cok{background:var(--ok);border-color:var(--ok);color:#fff}
+.ctx{flex:1 1 0;min-width:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer;font:inherit;padding:0}
+.ctx b{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em}
+.ctx span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:500}
+.ck.ab .ctx span{display:block}
+.cx{flex:1 1 100%;border:1px solid currentColor;background:transparent;color:var(--er);border-radius:8px;padding:3px 8px;font-size:.75rem;cursor:pointer}
+@media(max-width:900px){.wkg{grid-template-columns:1fr}.dy{min-height:0}.dh{text-align:left}.ck{font-size:.85rem}}
 </style>
 </head>
 <body>
@@ -300,7 +323,12 @@ details.card summary{cursor:pointer;font-weight:700}
   <section id="v-v" hidden><div id="edbox"></div></section>
 
   <section id="v-c" hidden>
-    <div class="card"><div class="row"><input id="ct" placeholder="Tarefa (ex.: estudar densidade)"><input id="cdis" placeholder="Disciplina (opcional)"><input id="cd" type="date" aria-label="Data"><button class="btn p" id="cadd">Adicionar</button></div></div>
+    <h2 class="hi">📅 Cronograma</h2>
+    <p class="mut" style="margin:-8px 0 14px">Toque no círculo para concluir uma tarefa e no texto para ver tudo (e apagar).</p>
+    <details class="card" style="margin-bottom:16px">
+      <summary>➕ Nova tarefa</summary>
+      <div class="row" style="margin-top:12px"><input id="ct" placeholder="Tarefa (ex.: estudar densidade)"><input id="cdis" placeholder="Disciplina (opcional)"><input id="cd" type="date" aria-label="Data"><button class="btn p" id="cadd">Adicionar</button></div>
+    </details>
     <div id="cbox"></div>
   </section>
 </main>
@@ -663,16 +691,41 @@ $('#edbox').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dat
 
 /* ---------- cronograma ---------- */
 $('#cd').value=hoje();
+let CR=[],crAb={};
 async function cron(){
-  const {data,error}=await sb.from('cronograma').select('*').order('data').limit(300);
+  const {data,error}=await sb.from('cronograma').select('*').order('data').limit(1000);
   if(error)return $('#cbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
-  const h=hoje(),l=data||[];
-  if(!l.length)return $('#cbox').innerHTML='<p class="mut">Nenhuma tarefa ainda. Adicione a primeira acima.</p>';
-  const g={};l.forEach(t=>(g[t.data]=g[t.data]||[]).push(t));
-  $('#cbox').innerHTML=Object.entries(g).map(([d,ts])=>`<div class="card"><h3 style="margin:0 0 6px">${new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}${d===h?' <span class="tag">hoje</span>':d<h?' <span class="tag">passado</span>':''}</h3>${ts.map(t=>`<p class="tk"><input type="checkbox" data-id="${t.id}" ${t.concluida?'checked':''}><span style="flex:1;${t.concluida?'text-decoration:line-through;color:var(--mut)':''}">${esc(t.titulo)}${t.disciplina?` <span class="mut">· ${esc(t.disciplina)}</span>`:''}</span><button class="ghost" data-del="${t.id}" aria-label="Apagar tarefa">✕</button></p>`).join('')}</div>`).join('');
-  document.querySelectorAll('#cbox [data-id]').forEach(i=>i.onchange=async()=>{await sb.from('cronograma').update({concluida:i.checked}).eq('id',i.dataset.id);cron()});
-  document.querySelectorAll('#cbox [data-del]').forEach(b=>b.onclick=async()=>{await sb.from('cronograma').delete().eq('id',b.dataset.del);cron()});
+  CR=data||[];crDesenha();
+  const a=document.querySelector('.wk.cur');if(a)a.scrollIntoView({block:'start'});
 }
+function crChip(t){
+  const prova=/^dia da prova/i.test(t.titulo),ab=crAb[t.id],lab=prova?'🎯 Dia da prova':(t.disciplina||'');
+  return `<div class="ck${t.concluida?' ok':''}${prova?' pv':''}${ab?' ab':''}" data-id="${t.id}"><button class="cok" data-a="ok" type="button" aria-label="${t.concluida?'Desmarcar':'Concluir'} tarefa">${t.concluida?'✓':''}</button><button class="ctx" data-a="ab" type="button" title="${esc(t.titulo)}">${lab?`<b>${esc(lab)}</b>`:''}<span>${esc(t.titulo)}</span></button>${ab?'<button class="cx" data-a="del" type="button">Apagar tarefa</button>':''}</div>`;
+}
+function crDesenha(){
+  const b=$('#cbox');
+  if(!CR.length)return b.innerHTML='<p class="mut">Nenhuma tarefa ainda. Adicione a primeira acima ou importe o cronograma no Supabase.</p>';
+  const h=hoje(),por={};CR.forEach(t=>(por[t.data]=por[t.data]||[]).push(t));
+  const dt=s=>new Date(s+'T12:00'),iso=d=>d.toLocaleDateString('sv-SE'),dm=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  const ini=dt(CR[0].data);ini.setDate(ini.getDate()-(ini.getDay()+6)%7);
+  const fim=dt(CR[CR.length-1].data),nome=['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
+  let html='',n=0;
+  for(let w=new Date(ini);w<=fim;w.setDate(w.getDate()+7)){
+    n++;let tot=0,ok=0;const col=[];
+    for(let i=0;i<7;i++){const d=new Date(w);d.setDate(d.getDate()+i);const k=iso(d),ts=por[k]||[];tot+=ts.length;ok+=ts.filter(x=>x.concluida).length;col.push({d,k,ts,i})}
+    const atual=h>=col[0].k&&h<=col[6].k;
+    html+=`<div class="wk${atual?' cur':''}"><div class="wkh"><b>Semana ${n}</b><span class="wkb">${dm(col[0].d)} a ${dm(col[6].d)}${atual?' · esta semana':''}</span><span class="wkb">${ok}/${tot} feitas</span></div><div class="wkg">${col.map(c=>`<div class="dy${c.k===h?' hj':''}${c.k<h?' ps':''}"><div class="dh">${nome[c.i]} ${dm(c.d)}${c.k===h?' • HOJE':''}</div>${c.ts.length?c.ts.map(crChip).join(''):'<span class="dv">—</span>'}</div>`).join('')}</div></div>`;
+  }
+  b.innerHTML=html;
+}
+$('#cbox').addEventListener('click',async ev=>{
+  const bt=ev.target.closest('button[data-a]');if(!bt)return;
+  const el=bt.closest('.ck'),id=+el.dataset.id,t=CR.find(x=>x.id===id);if(!t)return;
+  const a=bt.dataset.a;
+  if(a==='ab'){crAb[id]=!crAb[id];crDesenha();return}
+  if(a==='ok'){t.concluida=!t.concluida;crDesenha();await sb.from('cronograma').update({concluida:t.concluida}).eq('id',id);return}
+  if(a==='del'){if(!confirm('Apagar esta tarefa?'))return;CR=CR.filter(x=>x.id!==id);crDesenha();await sb.from('cronograma').delete().eq('id',id)}
+});
 $('#cadd').onclick=async()=>{
   const t=$('#ct').value.trim(),d=$('#cd').value;if(!t||!d)return;
   await sb.from('cronograma').insert({titulo:t,disciplina:$('#cdis').value.trim()||null,data:d});
