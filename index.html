@@ -146,6 +146,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 @media(prefers-reduced-motion:reduce){#stopw .dot.on{animation:none}}
 @media(max-width:1180px){.qgrid{grid-template-columns:1fr}.qside{order:-1}.chips.col{max-height:180px;overflow:auto}}
 @media(max-width:640px){#stopw{bottom:84px}.qcard{padding:18px}}
+/* painel de assuntos compacto */
+.qgrid{grid-template-columns:minmax(0,1fr) 230px}
+.qside{padding:14px}
+.qside h3{font-size:.95rem}
+.chips.col{gap:6px;max-height:440px;overflow:auto}
+.chips.col .chip{padding:7px 11px;font-size:.84rem;border-radius:10px}
+.chip small{font-size:.72rem;padding:0 8px}
+.stack select{padding:7px 9px;font-size:.84rem}
+@media(max-width:1180px){.qgrid{grid-template-columns:1fr}.chips.col{max-height:160px}}
 </style>
 </head>
 <body>
@@ -262,42 +271,42 @@ function ver(v){
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
 /* ---------- filtros ---------- */
-async function tudo(t,cols){let o=[];for(let f=0;;f+=1000){const {data}=await sb.from(t).select(cols).range(f,f+999);if(!data)break;o=o.concat(data);if(data.length<1000)break}return o}
+async function tudo(t,cols){let o=[];for(let f=0;;f+=1000){const {data}=await sb.from(t).select(cols).order('id').range(f,f+999);if(!data)break;o=o.concat(data);if(data.length<1000)break}return o}
 async function filtros(){
-  const [q,r]=await Promise.all([tudo('questoes','id,disciplina,banca,assunto'),tudo('respostas','questao_id')]);
-  bqAll=q;feitas=new Set(r.map(x=>x.questao_id));
+  const [q,r]=await Promise.all([tudo('questoes','id,disciplina,banca,assunto,gabarito'),tudo('respostas','id,questao_id,resposta')]);
+  bqAll=q;r.forEach(x=>{resp[x.questao_id]=x.resposta});
   const u=k=>[...new Set(bqAll.map(x=>x[k]).filter(Boolean))].sort();
   $('#fb').innerHTML='<option value="">Todas as bancas</option>'+u('banca').map(v=>`<option>${esc(v)}</option>`).join('');
   $('#sd').innerHTML='<option value="">Todas as disciplinas</option>'+u('disciplina').map(v=>`<option>${esc(v)}</option>`).join('');
 }
-const pend=()=>bqAll.filter(x=>!feitas.has(x.id));
+const pend=()=>bqAll;
 const CORES=[['#8a3d12','#d98a0a'],['#27278a','#7c3aed'],['#a3224a','#e8527a'],['#0f5f8a','#2fa8dc'],['#5b3a8a','#c05ad8']];
 const ico=n=>/qu[ií]m/i.test(n)?'⚗️':/portugu|reda/i.test(n)?'📖':/matem|racioc/i.test(n)?'🧮':/legisl|direito|const/i.test(n)?'⚖️':/f[ií]s/i.test(n)?'🧲':/bio/i.test(n)?'🧬':/hist/i.test(n)?'🏛️':/geo/i.test(n)?'🌎':'📚';
-let bqAll=[],feitas=new Set(),fd='',fa='',iniciou=false,modoErros=false;
+let bqAll=[],fd='',fa='',iniciou=false,modoErros=false;
 function bancoHome(){
-  const bq=pend();iniciou=false;modoErros=false;tmPause();$('#stopw').hidden=true;fila=[];$('#qbox').innerHTML='';$('#qfront').hidden=true;$('#qhome').hidden=false;
-  const ds={};bq.forEach(r=>{const d=ds[r.disciplina]=ds[r.disciplina]||{n:0,as:{}};d.n++;if(r.assunto)d.as[r.assunto]=1});
+  const bq=pend();redo.clear();iniciou=false;modoErros=false;tmPause();$('#stopw').hidden=true;fila=[];$('#qbox').innerHTML='';$('#qfront').hidden=true;$('#qhome').hidden=false;
+  const ds={};bq.forEach(r=>{const d=ds[r.disciplina]=ds[r.disciplina]||{n:0,f:0,as:{}};d.n++;if(resp[r.id])d.f++;if(r.assunto)d.as[r.assunto]=1});
   const nomes=Object.keys(ds).sort();
   const card=(i,ic,t,sub,pill,go)=>`<button class="fc" style="--c1:${CORES[i%5][0]};--c2:${CORES[i%5][1]}" data-go="${esc(go)}"><span class="ic">${ic}</span><b>${esc(t)}</b><span class="sub">${esc(sub)}</span><span class="pill">${pill}</span><span class="arr">➜</span></button>`;
-  let h=nomes.map((n,i)=>{const a=Object.keys(ds[n].as);return card(i,ico(n),n,a.length?a.slice(0,3).join(', ')+(a.length>3?' e mais '+(a.length-3):''):'Todos os assuntos',ds[n].n+' questões','d:'+n)}).join('');
-  if(nomes.length>1)h=card(nomes.length,'🗂️','Todas as disciplinas','Todos os assuntos em uma só lista.',bq.length+' questões','d:*')+h;
+  let h=nomes.map((n,i)=>{const a=Object.keys(ds[n].as);return card(i,ico(n),n,a.length?a.slice(0,3).join(', ')+(a.length>3?' e mais '+(a.length-3):''):'Todos os assuntos',ds[n].f+'/'+ds[n].n+' respondidas','d:'+n)}).join('');
+  if(nomes.length>1)h=card(nomes.length,'🗂️','Todas as disciplinas','Todos os assuntos em uma só lista.',bq.filter(r=>resp[r.id]).length+'/'+bq.length+' respondidas','d:*')+h;
   h+='<button class="fc fx" data-go="x:d"><span class="bd">MEU</span><span class="ic">📊</span><b>Meu desempenho</b><span class="sub">Seus acertos e erros por disciplina e assunto: veja o que revisar.</span><span class="pill">acompanhe sua evolução</span><span class="arr">➜</span></button>';
   $('#qhome').innerHTML=`<h2 class="hi">Banco de Questões</h2><p class="mut" style="margin:-8px 0 14px">Escolha uma frente de estudo. Depois filtre por assunto.</p><div class="fcs">${bq.length?h:'<p class="mut">'+(bqAll.length?'Você respondeu todas as questões! Revise os erros no Caderno de Erros.':'O banco ainda está vazio. Importe as questões no Supabase.')+'</p>'}</div>`;
   document.querySelectorAll('#qhome [data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;g==='x:d'?ver('d'):frente(g.slice(2))});
 }
 function frente(d){
-  fd=d==='*'?'':d;fa='';iniciou=false;modoErros=false;
+  fd=d==='*'?'':d;fa='';iniciou=false;modoErros=false;redo.clear();
   $('#qhome').hidden=true;$('#qfront').hidden=false;$('#qside').hidden=false;$('#qgrid').classList.remove('solo');
   $('#qbox').innerHTML='<div class="qcard"><p class="qe">Escolha um assunto na lista para começar.</p></div>';
   $('#qtit').textContent=d==='*'?'🗂️ Todas as disciplinas':ico(d)+' '+d;
-  const base=pend().filter(r=>!fd||r.disciplina===fd),c={};
-  base.forEach(r=>{if(r.assunto)c[r.assunto]=(c[r.assunto]||0)+1});
-  const chip=(v,l,n)=>`<button class="chip" data-a="${esc(v)}">${esc(l)}<small>${n}</small></button>`;
-  $('#qchips').innerHTML=chip('','Todos os assuntos',base.length)+Object.entries(c).sort().map(([a,n])=>chip(a,a,n)).join('');
-  document.querySelectorAll('#qchips .chip').forEach(b=>b.onclick=()=>{
-    document.querySelectorAll('#qchips .chip').forEach(x=>x.classList.toggle('on',x===b));
-    fa=b.dataset.a;iniciou=true;buscar();
-  });
+  chips();
+}
+function chips(){
+  const base=bqAll.filter(r=>!fd||r.disciplina===fd),c={};
+  base.forEach(r=>{if(r.assunto){const x=c[r.assunto]=c[r.assunto]||[0,0];x[0]++;if(resp[r.id])x[1]++}});
+  const chip=(v,l,t)=>`<button class="chip${iniciou&&v===fa?' on':''}" data-a="${esc(v)}"><span>${esc(l)}</span><small>${t}</small></button>`;
+  $('#qchips').innerHTML=chip('','Todos os assuntos',base.filter(r=>resp[r.id]).length+'/'+base.length)+Object.entries(c).sort().map(([a,x])=>chip(a,a,x[1]+'/'+x[0])).join('');
+  document.querySelectorAll('#qchips .chip').forEach(b=>b.onclick=()=>{fa=b.dataset.a;iniciou=true;chips();buscar()});
 }
 $('#qback').onclick=bancoHome;
 let tmS=0,tmRun=false,tmI=null;
@@ -316,48 +325,48 @@ function opcoes(q){
   return [['C','Certo'],['E','Errado']];
 }
 async function buscar(){
-  let r=sb.from('questoes').select('*').limit(1000);
+  let r=sb.from('questoes').select('*').order('id').limit(1000);
   if(fd)r=r.eq('disciplina',fd);
   if(fa)r=r.eq('assunto',fa);
   if($('#fb').value)r=r.eq('banca',$('#fb').value);
   if($('#ft').value)r=r.eq('tipo',$('#ft').value);
   const {data,error}=await r;
   if(error)return $('#qbox').innerHTML='<p class="mut">Erro ao buscar: '+esc(error.message)+'</p>';
-  const tds=data||[];fila=shuf(tds.filter(x=>!feitas.has(x.id)));idx=0;
-  if(!fila.length&&tds.length){$('#qbox').innerHTML='<div class="card">Você já respondeu todas as questões deste filtro. Revise os erros no Caderno de Erros.</div>';return}
+  fila=data||[];idx=Math.max(0,fila.findIndex(x=>!resp[x.id]));
   $('#stopw').hidden=false;tmStart();mostrar();
   $('#qbox').scrollIntoView({block:'start'});
 }
-const resp={};
+const resp={},redo=new Set(),rsp=x=>redo.has(x.id)?undefined:resp[x.id];
 const fbHTML=(q,l)=>`<div class="fb"><b>${l===q.gabarito?'Correto!':'Errado.'}</b> Gabarito: ${esc(q.gabarito)}.${q.comentario?'<br>'+esc(q.comentario).replace(/\n/g,'<br>'):''}</div>`;
 function mostrar(){
   const b=$('#qbox'),msg=t=>b.innerHTML='<div class="qcard"><p class="qe">'+t+'</p></div>';
   if(!fila.length)return msg('Nenhuma questão encontrada com esses filtros.');
   if(idx>=fila.length){
-    const sem=fila.filter(x=>!resp[x.id]).length;
+    const sem=fila.filter(x=>!rsp(x)).length;
     b.innerHTML='<div class="qcard"><p class="qe">'+(sem?'Você chegou ao fim da lista. Restam '+sem+' questão'+(sem>1?'s':'')+' sem resposta.':'Você terminou esta lista de '+fila.length+' questões.')+'</p><div class="qfoot"><button class="nb" id="ant" type="button">← Voltar à última</button><span></span>'+(sem?'<button class="nb p" id="resta" type="button">Responder as puladas</button>':'<span></span>')+'</div></div>';
     $('#ant').onclick=()=>{idx--;mostrar()};
-    if(sem)$('#resta').onclick=()=>{idx=fila.findIndex(x=>!resp[x.id]);mostrar()};
+    if(sem)$('#resta').onclick=()=>{idx=fila.findIndex(x=>!rsp(x));mostrar()};
     return;
   }
-  const q=fila[idx],a=resp[q.id],fei=fila.filter(x=>resp[x.id]).length,falt=fila.slice(0,idx).filter(x=>!resp[x.id]).length;
+  const q=fila[idx],a=rsp(q),fei=fila.filter(x=>rsp(x)).length,falt=fila.slice(0,idx).filter(x=>!rsp(x)).length;
   b.innerHTML=`<div class="qcard">
   <div class="qtop"><span class="qpill">${esc(q.disciplina)}${q.assunto?' · '+esc(q.assunto):''}</span>${modoErros?'':'<button class="rst" id="reiniciar" type="button">↻ Reiniciar</button>'}</div>
   <p class="qn">Questão ${idx+1} de ${fila.length} · ${esc(q.banca)}${q.ano?' · '+q.ano:''}${falt?` · ${falt} pulada${falt>1?'s':''}`:''}</p>
   <p class="qe">${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
   <div id="alts">${opcoes(q).map(([l,t])=>`<button class="alt${a?(l===q.gabarito?' ok':l===a?' er':''):''}" data-l="${esc(l)}"${a?' disabled':''}><b>${esc(l)}</b> ${t===l?'':esc(t)}</button>`).join('')}</div>
   <div id="fbk">${a?fbHTML(q,a):''}</div>
-  <div class="qfoot"><button class="nb" id="ant" type="button"${idx?'':' disabled'}>← Anterior</button><div class="qc"><b>${idx+1} / ${fila.length}</b><span>${fei} respondida${fei===1?'':'s'}</span></div><button class="nb p" id="prox" type="button">Próxima →</button></div></div>`;
+  <div class="qfoot"><button class="nb" id="ant" type="button"${idx?'':' disabled'}>← Anterior</button><div class="qc"><b>${fei} / ${fila.length}</b><span>respondidas</span></div><button class="nb p" id="prox" type="button">Próxima →</button></div></div>`;
   b.querySelectorAll('.alt').forEach(x=>x.onclick=()=>responder(x.dataset.l));
   $('#ant').onclick=()=>{idx--;mostrar()};
   $('#prox').onclick=()=>{idx++;mostrar()};
   if($('#reiniciar'))$('#reiniciar').onclick=()=>{tmReset();buscar()};
 }
 async function responder(l){
-  const q=fila[idx];if(resp[q.id])return;
-  resp[q.id]=l;feitas.add(q.id);mostrar();
+  const q=fila[idx];if(rsp(q))return;
+  const antes=resp[q.id],refaz=redo.has(q.id);
+  resp[q.id]=l;redo.delete(q.id);mostrar();if(!modoErros)chips();
   const {error}=await sb.from('respostas').insert({questao_id:q.id,resposta:l,correta:l===q.gabarito});
-  if(error){delete resp[q.id];feitas.delete(q.id);mostrar();$('#fbk').innerHTML='<div class="fb">Não foi possível salvar a resposta: '+esc(error.message)+'</div>'}
+  if(error){if(antes===undefined)delete resp[q.id];else resp[q.id]=antes;if(refaz)redo.add(q.id);mostrar();if(!modoErros)chips();$('#fbk').innerHTML='<div class="fb">Não foi possível salvar a resposta: '+esc(error.message)+'</div>'}
 }
 
 /* ---------- simulado ---------- */
@@ -389,7 +398,7 @@ async function finalizar(){
   if(!sim)return;clearInterval(tick);
   const S=sim;sim=null;
   const linhas=[];let ac=0;
-  S.qs.forEach((q,i)=>{const l=S.resp[i];if(l){const ok=l===q.gabarito;if(ok)ac++;linhas.push({questao_id:q.id,simulado_id:S.id,resposta:l,correta:ok});feitas.add(q.id)}});
+  S.qs.forEach((q,i)=>{const l=S.resp[i];if(l){const ok=l===q.gabarito;if(ok)ac++;linhas.push({questao_id:q.id,simulado_id:S.id,resposta:l,correta:ok});resp[q.id]=l}});
   if(linhas.length)await sb.from('respostas').insert(linhas);
   const nota=Math.round(ac/S.qs.length*1000)/10;
   await sb.from('simulados').update({finalizado_em:new Date().toISOString(),nota}).eq('id',S.id);
@@ -402,16 +411,18 @@ async function finalizar(){
 async function hist(){
   const {data,error}=await sb.from('respostas').select('id,resposta,correta,respondida_em,questoes(id,enunciado,disciplina,assunto,gabarito)').order('respondida_em',{ascending:false}).limit(150);
   if(error)return $('#hbox').innerHTML='<p class="mut">Erro: '+esc(error.message)+'</p>';
-  const l=(data||[]).filter(r=>r.questoes&&(!$('#so').checked||!r.correta));
+  const vis=new Set(),l=(data||[]).filter(r=>{if(!r.questoes)return false;const ult=!vis.has(r.questoes.id);vis.add(r.questoes.id);return $('#so').checked?(ult&&!r.correta):true});
   $('#hbox').innerHTML=l.length?l.map(r=>`<div class="card"><p class="mut">${new Date(r.respondida_em).toLocaleString('pt-BR')} · ${esc(r.questoes.disciplina)}${r.questoes.assunto?' · '+esc(r.questoes.assunto):''}</p>
   <p>${esc(r.questoes.enunciado.slice(0,220))}${r.questoes.enunciado.length>220?'…':''}</p>
   <p>Você marcou <b>${esc(r.resposta)}</b> · Gabarito <b>${esc(r.questoes.gabarito)}</b> · <b style="color:${r.correta?'var(--ok)':'var(--er)'}">${r.correta?'acertou':'errou'}</b></p></div>`).join(''):'<p class="mut">Nada por aqui ainda.</p>';
 }
 $('#so').onchange=hist;
 $('#refazer').onclick=async()=>{
-  const {data}=await sb.from('respostas').select('correta,questoes(*)').eq('correta',false).limit(500);
-  const m=new Map();(data||[]).forEach(r=>r.questoes&&m.set(r.questoes.id,r.questoes));
-  fila=shuf([...m.values()]);fila.forEach(x=>delete resp[x.id]);idx=0;ver('q');$('#qhome').hidden=true;$('#qfront').hidden=false;$('#qside').hidden=true;$('#qgrid').classList.add('solo');$('#qtit').textContent='📓 Refazendo erros';modoErros=true;$('#stopw').hidden=false;tmStart();mostrar();
+  const ids=bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).map(x=>x.id);
+  if(!ids.length){alert('Nenhum erro para refazer no momento.');return}
+  let qs=[];for(let i=0;i<ids.length;i+=100){const {data}=await sb.from('questoes').select('*').in('id',ids.slice(i,i+100));qs=qs.concat(data||[])}
+  ver('q');fila=shuf(qs);idx=0;redo.clear();fila.forEach(x=>redo.add(x.id));
+  $('#qhome').hidden=true;$('#qfront').hidden=false;$('#qside').hidden=true;$('#qgrid').classList.add('solo');$('#qtit').textContent='📓 Refazendo erros';modoErros=true;$('#stopw').hidden=false;tmStart();mostrar();
 };
 
 /* ---------- desempenho ---------- */
@@ -436,12 +447,12 @@ async function inicio(){
   const h=hoje(),ini=new Date();ini.setHours(0,0,0,0);
   const [r,e,f,c]=await Promise.all([
     sb.from('respostas').select('correta').gte('respondida_em',ini.toISOString()),
-    sb.from('respostas').select('id',{count:'exact',head:true}).eq('correta',false),
+    Promise.resolve(),
     sb.from('flashcards').select('id',{count:'exact',head:true}).lte('revisar_em',h),
     sb.from('cronograma').select('titulo,disciplina,concluida').eq('data',h)]);
   const d=r.data||[],t=d.length,ac=d.filter(x=>x.correta).length,ts=c.data||[];
   const k=(n,l,v)=>`<button class="card stat" data-go="${v}"><b>${n}</b><span class="mut">${l}</span></button>`;
-  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(e.count||0,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}</div>
+  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).length,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}</div>
   <div class="card"><h3 style="margin-top:0">Tarefas de hoje</h3>${ts.length?ts.map(x=>`<p class="tk">${x.concluida?'✅':'⬜'} <span>${esc(x.titulo)}${x.disciplina?` <span class="mut">· ${esc(x.disciplina)}</span>`:''}</span></p>`).join(''):'<p class="mut">Nenhuma tarefa para hoje. Planeje no Cronograma.</p>'}</div>`;
   document.querySelectorAll('#ibox [data-go]').forEach(b=>b.onclick=()=>ver(b.dataset.go));
 }
