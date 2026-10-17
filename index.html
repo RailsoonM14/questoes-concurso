@@ -134,7 +134,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .qcard .alt.ok b,.qcard .alt.er b{background:none;color:#fff}
 .qcard .alt:disabled{color:#fff}
 .qcard .fb{background:rgba(255,255,255,.14);border-left-color:#86efac;color:#fff}
-.skip{margin-top:10px;padding:10px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.5);background:transparent;color:#fff;cursor:pointer}
 .qfoot{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2)}
 .nb{padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:700;cursor:pointer}
 .nb.p{background:#fff;color:#1b4631;border-color:#fff}
@@ -329,38 +328,34 @@ async function buscar(){
   $('#stopw').hidden=false;tmStart();mostrar();
   $('#qbox').scrollIntoView({block:'start'});
 }
-const resp={},pul=new Set();
+const resp={};
 const fbHTML=(q,l)=>`<div class="fb"><b>${l===q.gabarito?'Correto!':'Errado.'}</b> Gabarito: ${esc(q.gabarito)}.${q.comentario?'<br>'+esc(q.comentario).replace(/\n/g,'<br>'):''}</div>`;
 function mostrar(){
   const b=$('#qbox'),msg=t=>b.innerHTML='<div class="qcard"><p class="qe">'+t+'</p></div>';
   if(!fila.length)return msg('Nenhuma questão encontrada com esses filtros.');
   if(idx>=fila.length){
-    b.innerHTML='<div class="qcard"><p class="qe">Você terminou esta lista de '+fila.length+' questões.</p><div class="qfoot"><button class="nb" id="ant" type="button">← Voltar à última</button><span></span><span></span></div></div>';
-    $('#ant').onclick=()=>{idx--;mostrar()};return;
+    const sem=fila.filter(x=>!resp[x.id]).length;
+    b.innerHTML='<div class="qcard"><p class="qe">'+(sem?'Você chegou ao fim da lista. Restam '+sem+' questão'+(sem>1?'s':'')+' sem resposta.':'Você terminou esta lista de '+fila.length+' questões.')+'</p><div class="qfoot"><button class="nb" id="ant" type="button">← Voltar à última</button><span></span>'+(sem?'<button class="nb p" id="resta" type="button">Responder as puladas</button>':'<span></span>')+'</div></div>';
+    $('#ant').onclick=()=>{idx--;mostrar()};
+    if(sem)$('#resta').onclick=()=>{idx=fila.findIndex(x=>!resp[x.id]);mostrar()};
+    return;
   }
-  const q=fila[idx],a=resp[q.id],fei=fila.filter(x=>resp[x.id]).length,falt=fila.filter(x=>pul.has(x.id)&&!resp[x.id]).length;
+  const q=fila[idx],a=resp[q.id],fei=fila.filter(x=>resp[x.id]).length,falt=fila.slice(0,idx).filter(x=>!resp[x.id]).length;
   b.innerHTML=`<div class="qcard">
   <div class="qtop"><span class="qpill">${esc(q.disciplina)}${q.assunto?' · '+esc(q.assunto):''}</span>${modoErros?'':'<button class="rst" id="reiniciar" type="button">↻ Reiniciar</button>'}</div>
   <p class="qn">Questão ${idx+1} de ${fila.length} · ${esc(q.banca)}${q.ano?' · '+q.ano:''}${falt?` · ${falt} pulada${falt>1?'s':''}`:''}</p>
   <p class="qe">${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
   <div id="alts">${opcoes(q).map(([l,t])=>`<button class="alt${a?(l===q.gabarito?' ok':l===a?' er':''):''}" data-l="${esc(l)}"${a?' disabled':''}><b>${esc(l)}</b> ${t===l?'':esc(t)}</button>`).join('')}</div>
   <div id="fbk">${a?fbHTML(q,a):''}</div>
-  ${a?'':'<button class="skip" id="pular" type="button">Pular para depois ↪</button>'}
-  <div class="qfoot"><button class="nb" id="ant" type="button"${idx?'':' disabled'}>← Anterior</button><div class="qc"><b>${idx+1} / ${fila.length}</b><span>${fei} respondida${fei===1?'':'s'}</span></div><button class="nb p" id="prox" type="button"${a?'':' disabled'}>Próxima →</button></div></div>`;
+  <div class="qfoot"><button class="nb" id="ant" type="button"${idx?'':' disabled'}>← Anterior</button><div class="qc"><b>${idx+1} / ${fila.length}</b><span>${fei} respondida${fei===1?'':'s'}</span></div><button class="nb p" id="prox" type="button">Próxima →</button></div></div>`;
   b.querySelectorAll('.alt').forEach(x=>x.onclick=()=>responder(x.dataset.l));
   $('#ant').onclick=()=>{idx--;mostrar()};
   $('#prox').onclick=()=>{idx++;mostrar()};
-  if($('#pular'))$('#pular').onclick=pular;
-  if($('#reiniciar'))$('#reiniciar').onclick=()=>{tmReset();pul.clear();buscar()};
-}
-function pular(){
-  const q=fila[idx];
-  if(!fila.slice(idx+1).some(x=>!resp[x.id])){$('#fbk').innerHTML='<div class="fb">Esta é a última questão pendente desta lista.</div>';return}
-  pul.add(q.id);fila.splice(idx,1);fila.push(q);mostrar();
+  if($('#reiniciar'))$('#reiniciar').onclick=()=>{tmReset();buscar()};
 }
 async function responder(l){
   const q=fila[idx];if(resp[q.id])return;
-  resp[q.id]=l;pul.delete(q.id);feitas.add(q.id);mostrar();
+  resp[q.id]=l;feitas.add(q.id);mostrar();
   const {error}=await sb.from('respostas').insert({questao_id:q.id,resposta:l,correta:l===q.gabarito});
   if(error){delete resp[q.id];feitas.delete(q.id);mostrar();$('#fbk').innerHTML='<div class="fb">Não foi possível salvar a resposta: '+esc(error.message)+'</div>'}
 }
