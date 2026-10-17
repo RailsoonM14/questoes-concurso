@@ -169,6 +169,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .btn.sm{padding:7px 14px;font-size:.85rem;border-radius:999px}
 .btn:disabled{opacity:.45;cursor:default}
 details.card summary{cursor:pointer;font-weight:700}
+/* questão mais horizontal */
+@media(min-width:900px){main.wide{max-width:1120px}}
+.qgrid{grid-template-columns:minmax(0,1fr) 220px}
+.qcard{padding:20px 28px}
+.qcard .alt{padding:10px 16px;margin:7px 0}
+.qe{font-size:1.05rem;margin:6px 0 14px}
+.qfoot{margin-top:14px;padding-top:14px}
+.nb{padding:11px}
+#stopw small{font-weight:500;opacity:.7;font-size:.7rem}
+@media(max-width:1180px){.qgrid{grid-template-columns:1fr}}
+@media(max-width:640px){.qcard{padding:16px}}
 </style>
 </head>
 <body>
@@ -277,14 +288,14 @@ $('#go').onclick=async()=>{
 $('#sair').onclick=async()=>{await sb.auth.signOut();location.reload()};
 async function entrar(){
   $('#login').hidden=true;$('#app').hidden=false;
-  await filtros();inicio();
+  await filtros();await tmCarregar();inicio();
 }
 
 /* ---------- navegação ---------- */
 function ver(v){
   document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   ['i','q','s','e','f','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
-  if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')caderno();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
+  $('main').classList.toggle('wide',v==='q');if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')caderno();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
 }
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
@@ -327,13 +338,32 @@ function chips(){
   document.querySelectorAll('#qchips .chip').forEach(b=>b.onclick=()=>{fa=b.dataset.a;iniciou=true;chips();buscar()});
 }
 $('#qback').onclick=bancoHome;
-let tmS=0,tmRun=false,tmI=null;
+let tmS=0,tmRun=false,tmI=null,tmDia='',tmSave=0;
+const tmKey=d=>'tempo:'+d;
 const tmFmt=()=>[Math.floor(tmS/3600),Math.floor(tmS%3600/60),tmS%60].map(n=>String(n).padStart(2,'0')).join(':');
-function tmDraw(){$('#stopw').innerHTML=`<i class="dot${tmRun?' on':''}"></i>${tmFmt()}`}
-function tmStart(){if(tmI)return;tmRun=true;tmI=setInterval(()=>{tmS++;tmDraw()},1000);tmDraw()}
-function tmPause(){clearInterval(tmI);tmI=null;tmRun=false;tmDraw()}
-function tmReset(){tmPause();tmS=0;tmDraw()}
+const tmCurto=()=>{const m=Math.floor(tmS/60);return m>=60?Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'min':m+' min'};
+function tmDraw(){$('#stopw').innerHTML=`<i class="dot${tmRun?' on':''}"></i>${tmFmt()}<small>hoje</small>`}
+function tmGuardar(){
+  try{localStorage.setItem(tmKey(tmDia),String(tmS))}catch(e){}
+  tmSave=tmS;
+  sb.from('tempo_estudo').upsert({dia:tmDia,segundos:tmS,atualizado_em:new Date().toISOString()},{onConflict:'dia'}).then(()=>{},()=>{});
+}
+async function tmCarregar(){
+  tmDia=hoje();let loc=0,rem=0;
+  try{loc=+localStorage.getItem(tmKey(tmDia))||0}catch(e){}
+  try{const {data}=await sb.from('tempo_estudo').select('segundos').eq('dia',tmDia).maybeSingle();rem=data?data.segundos:0}catch(e){}
+  tmS=Math.max(tmS,loc,rem);tmSave=tmS;tmDraw();
+}
+function tmTick(){
+  if(hoje()!==tmDia){tmGuardar();tmDia=hoje();tmS=0;tmSave=0}
+  tmS++;tmDraw();
+  if(tmS-tmSave>=20)tmGuardar();
+}
+function tmStart(){if(tmI)return;if(!tmDia)tmDia=hoje();tmRun=true;tmI=setInterval(tmTick,1000);tmDraw()}
+function tmPause(){clearInterval(tmI);tmI=null;tmRun=false;tmDraw();if(tmDia&&tmS!==tmSave)tmGuardar()}
 $('#stopw').onclick=()=>tmRun?tmPause():tmStart();
+addEventListener('pagehide',()=>{if(tmDia&&tmS!==tmSave)tmGuardar()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&tmDia&&tmS!==tmSave)tmGuardar()});
 tmDraw();
 $('#fb').onchange=$('#ft').onchange=()=>{if(iniciou)buscar()};
 
@@ -377,7 +407,7 @@ function mostrar(){
   b.querySelectorAll('.alt').forEach(x=>x.onclick=()=>responder(x.dataset.l));
   $('#ant').onclick=()=>{idx--;mostrar()};
   $('#prox').onclick=()=>{idx++;mostrar()};
-  if($('#reiniciar'))$('#reiniciar').onclick=()=>{tmReset();buscar()};
+  if($('#reiniciar'))$('#reiniciar').onclick=()=>{buscar()};
 }
 async function responder(l){
   const q=fila[idx];if(rsp(q))return;
@@ -492,7 +522,7 @@ async function inicio(){
     sb.from('cronograma').select('titulo,disciplina,concluida').eq('data',h)]);
   const d=r.data||[],t=d.length,ac=d.filter(x=>x.correta).length,ts=c.data||[];
   const k=(n,l,v)=>`<button class="card stat" data-go="${v}"><b>${n}</b><span class="mut">${l}</span></button>`;
-  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).length,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}</div>
+  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).length,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}${k(tmCurto(),'estudado hoje','q')}</div>
   <div class="card"><h3 style="margin-top:0">Tarefas de hoje</h3>${ts.length?ts.map(x=>`<p class="tk">${x.concluida?'✅':'⬜'} <span>${esc(x.titulo)}${x.disciplina?` <span class="mut">· ${esc(x.disciplina)}</span>`:''}</span></p>`).join(''):'<p class="mut">Nenhuma tarefa para hoje. Planeje no Cronograma.</p>'}</div>`;
   document.querySelectorAll('#ibox [data-go]').forEach(b=>b.onclick=()=>ver(b.dataset.go));
 }
