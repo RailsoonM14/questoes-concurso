@@ -194,6 +194,22 @@ details.card summary{cursor:pointer;font-weight:700}
 .fnav{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px}
 @media(prefers-reduced-motion:reduce){.fcard{transition:none}.fcard:hover{transform:none}}
 @media(max-width:640px){.fcard{min-height:250px;padding:26px 18px}.ftxt{font-size:1.2rem}}
+/* edital verticalizado */
+.ed{padding:0;overflow:hidden}
+.ed summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:16px 18px}
+.ed summary::-webkit-details-marker{display:none}
+.edn{font-weight:700;flex:1 1 240px}
+.edb{font-size:.78rem;color:var(--mut)}
+.edp{font-weight:700;color:var(--ac);font-size:.9rem}
+.ed summary .bar{flex:1 1 100%;display:block}
+.edl{border-top:1px solid var(--bd);padding:4px 18px 10px}
+.edr,.edh{display:grid;grid-template-columns:1fr 62px 62px;gap:8px;align-items:center;padding:9px 0}
+.edr+.edr{border-top:1px solid var(--bd)}
+.edh{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);text-align:center}
+.edr label{display:flex;justify-content:center}
+.edr input{width:20px;height:20px;accent-color:var(--ac)}
+.edr small{display:block;color:var(--mut);font-size:.8rem;margin-top:2px}
+.edr .n{color:var(--mut);font-weight:700;margin-right:6px}
 </style>
 </head>
 <body>
@@ -219,6 +235,7 @@ details.card summary{cursor:pointer;font-weight:700}
   <button data-v="s"><span class="ic">🎯</span><span class="lg">Simulados</span><span class="sm">Simulado</span></button>
   <button data-v="e"><span class="ic">📓</span><span class="lg">Caderno de Erros</span><span class="sm">Erros</span></button>
   <button data-v="f"><span class="ic">🗂️</span><span class="lg">Flashcards</span><span class="sm">Cards</span></button>
+  <button data-v="v"><span class="ic">📋</span><span class="lg">Edital verticalizado</span><span class="sm">Edital</span></button>
   <button data-v="c"><span class="ic">📅</span><span class="lg">Cronograma</span><span class="sm">Plano</span></button>
   <button data-v="d"><span class="ic">📊</span><span class="lg">Meu desempenho</span><span class="sm">Dados</span></button>
 </nav>
@@ -280,6 +297,8 @@ details.card summary{cursor:pointer;font-weight:700}
     </details>
   </section>
 
+  <section id="v-v" hidden><div id="edbox"></div></section>
+
   <section id="v-c" hidden>
     <div class="card"><div class="row"><input id="ct" placeholder="Tarefa (ex.: estudar densidade)"><input id="cdis" placeholder="Disciplina (opcional)"><input id="cd" type="date" aria-label="Data"><button class="btn p" id="cadd">Adicionar</button></div></div>
     <div id="cbox"></div>
@@ -314,8 +333,8 @@ async function entrar(){
 /* ---------- navegação ---------- */
 function ver(v){
   document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  ['i','q','s','e','f','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
-  $('main').classList.toggle('wide',v==='q');if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')caderno();if(v==='f')fc();if(v==='c')cron();if(v==='d')desemp();
+  ['i','q','s','e','f','v','c','d'].forEach(k=>$('#v-'+k).hidden=k!==v);
+  $('main').classList.toggle('wide',v==='q');if(v!=='q'){tmPause();$('#stopw').hidden=true}if(v==='i')inicio();if(v==='q')bancoHome();if(v==='e')caderno();if(v==='f')fc();if(v==='c')cron();if(v==='v')edital();if(v==='d')desemp();
 }
 document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>ver(b.dataset.v));
 
@@ -535,14 +554,14 @@ async function desemp(){
 const hoje=()=>new Date().toLocaleDateString('sv-SE');
 async function inicio(){
   const h=hoje(),ini=new Date();ini.setHours(0,0,0,0);
-  const [r,e,f,c]=await Promise.all([
+  const [r,e,f,c,pe]=await Promise.all([
     sb.from('respostas').select('correta').gte('respondida_em',ini.toISOString()),
     Promise.resolve(),
     sb.from('flashcards').select('id',{count:'exact',head:true}).lte('revisar_em',h),
-    sb.from('cronograma').select('titulo,disciplina,concluida').eq('data',h)]);
-  const d=r.data||[],t=d.length,ac=d.filter(x=>x.correta).length,ts=c.data||[];
+    sb.from('cronograma').select('titulo,disciplina,concluida').eq('data',h),sb.from('edital_progresso').select('chave').eq('estudado',true)]);
+  const d=r.data||[],t=d.length,ac=d.filter(x=>x.correta).length,ts=c.data||[],ned=EDITAL.reduce((a,m)=>a+m.t.length,0),pctEd=ned?Math.round((pe.data||[]).length/ned*100):0;
   const k=(n,l,v)=>`<button class="card stat" data-go="${v}"><b>${n}</b><span class="mut">${l}</span></button>`;
-  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).length,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}${k(tmCurto(),'estudado hoje','q')}</div>
+  $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).length,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}${k(tmCurto(),'estudado hoje','q')}${k(pctEd+'%','do edital estudado','v')}</div>
   <div class="card"><h3 style="margin-top:0">Tarefas de hoje</h3>${ts.length?ts.map(x=>`<p class="tk">${x.concluida?'✅':'⬜'} <span>${esc(x.titulo)}${x.disciplina?` <span class="mut">· ${esc(x.disciplina)}</span>`:''}</span></p>`).join(''):'<p class="mut">Nenhuma tarefa para hoje. Planeje no Cronograma.</p>'}</div>`;
   document.querySelectorAll('#ibox [data-go]').forEach(b=>b.onclick=()=>ver(b.dataset.go));
 }
@@ -602,6 +621,45 @@ $('#fadd').onclick=async()=>{
   await sb.from('flashcards').insert({frente:f,verso:v,disciplina:$('#fdc').value.trim()||null});
   $('#ff').value=$('#fv').value=$('#fdc').value='';fc();
 };
+
+/* ---------- edital verticalizado ---------- */
+const EDITAL=[{"id":"eb","n":"Educação Brasileira: Temas Educacionais e Pedagógicos","p":"P1","q":8,"min":3,"t":[["História da educação brasileira","Do Movimento dos Pioneiros da Educação aos dias atuais"],["LDB: Lei nº 9.394/96",""],["Leis nº 10.639/2003 e nº 11.645/2008","História e cultura afro-brasileira, africana e indígena no currículo"],["Planos Nacionais de Educação","2001–2010, 2014–2025 e 2026–2036"],["Estrutura e funcionamento da educação básica",""],["Tendências pedagógicas contemporâneas",""],["Gestão democrática da escola pública",""],["Projeto Político Pedagógico",""],["Didática e processo de ensino e aprendizagem","Planejamento, estratégias, metodologias e avaliação"],["Sala de aula e didática como fundamento do fazer docente",""],["Planejamento de curso, unidade e aula","Elementos estruturantes"],["Teorias da aprendizagem","Inatismo, comportamentalismo, behaviorismo, interacionismo e cognitivismo"],["Psicologia do desenvolvimento","Aspectos históricos e biopsicossociais"],["Temas contemporâneos","Bullying, relações étnico-raciais, educação especial, educação ambiental e protagonismo juvenil"],["BNCC","Fundamentos e princípios, ensino médio e organização curricular"],["Professor: formação e profissão","Base legal, pesquisa na prática docente e dimensão ética"],["Educação Integral em Tempo Integral no Ensino Médio","Marcos legais, currículo e itinerários formativos"],["Avaliações externas em larga escala","Spaece, Saeb e Pisa"],["Políticas de equidade no PNE 2026–2036",""],["DCRC: Ensino Médio","Documento Curricular Referencial do Ceará"]]},{"id":"ap","n":"Administração Pública","p":"P1","q":8,"min":3,"t":[["Conceitos e princípios da Administração Pública","Princípios constitucionais e legais"],["Reformas administrativas no Brasil","Evolução histórica"],["Modelos de Administração Pública","Patrimonialista, burocrático e gerencial"],["Administração Pública na Constituição","Disposições gerais e servidores públicos"],["Lei nº 9.784/1999","Processo administrativo na Administração Federal"],["Organização da Administração Pública","Diferença entre órgãos, fundos e entidades"],["Administração Direta e Indireta","Características e entidades"],["Controle da Administração Pública","Controle administrativo e legislativo"],["Poderes da Administração","Vinculado, discricionário, normativo, hierárquico, disciplinar e de polícia"],["Plano Nacional de Educação","Lei Federal nº 15.388, de 14 de abril de 2026"],["Estrutura organizacional do Governo do Ceará","Modelo de Gestão do Poder Executivo e Guia de Modelagem de Estrutura Organizacional (2ª edição, 2021)"],["Código de Ética e Conduta da Administração Pública do Ceará",""],["Estatuto dos Servidores do Estado do Ceará",""]]},{"id":"lp","n":"Língua Portuguesa","p":"P1","q":8,"min":3,"t":[["Compreensão e interpretação de textos",""],["Fatores de textualidade",""],["Tipologias textuais",""],["Gêneros discursivos e textuais",""],["Ortografia oficial",""],["Acentuação gráfica",""],["Emprego das classes gramaticais",""],["Formação e estrutura das palavras",""],["Emprego do sinal indicativo de crase",""],["Relações de coordenação e subordinação",""],["Relações sintáticas na oração e no período",""],["Pontuação",""],["Concordância nominal e verbal",""],["Regência nominal e verbal",""],["Significação das palavras",""],["Funções da linguagem",""]]},{"id":"ld","n":"Leitura e Interpretação de Dados e Indicadores Educacionais","p":"P1","q":6,"min":2,"t":[["Indicadores educacionais","O que são e para que servem"],["Indicadores e índices na política educacional",""],["Indicadores calculados pelo Inep",""],["Indicadores escolares, docentes e discentes",""],["Indicadores de desempenho dos estudantes","Spaece, Saeb, Enem e Pisa"],["Leitura e interpretação de dados em formatos variados","Tabelas e gráficos"],["Resolução de problemas com estatística descritiva",""]]},{"id":"qu","n":"Conhecimentos Específicos: Professor de Química","p":"P2","q":50,"min":20,"t":[["Evolução histórica da Química","Da Alquimia ao nascimento da Química moderna"],["Estudo da matéria: estados físicos e transformações",""],["Leis ponderais","Lavoisier, Proust, Dalton e Richter"],["Massa atômica e massa molecular",""],["Mol, constante de Avogadro e volume molar",""],["Cálculos estequiométricos",""],["Modelos atômicos","Evolução dos conceitos de átomo"],["Número atômico, número de massa e nêutrons","Elementos químicos; isótopos, isóbaros e isótonos"],["Configuração eletrônica","Orbital atômico e números quânticos"],["Princípio da incerteza de Heisenberg",""],["Tabela periódica","Histórico, lei periódica, propriedades periódicas e classificação dos elementos"],["Ligações químicas","Iônica, covalente e metálica"],["Geometria molecular","Teoria da repulsão de pares eletrônicos"],["Polaridade e ligações intermoleculares",""],["Funções inorgânicas","Ácidos, bases, sais e óxidos"],["Soluções e misturas","Caracterização; sistemas homogêneo e heterogêneo"],["Processos de separação de misturas",""],["Solubilidade e concentração das soluções","Coeficiente de solubilidade"],["Diluição e mistura de soluções",""],["Propriedades coligativas",""],["Titulação",""],["Estudo dos gases","Transformações gasosas, leis físicas e misturas gasosas"],["Reações em solução aquosa","Ácido-base, precipitação e complexação"],["Termoquímica","Reações exo e endotérmicas, entalpia, Lei de Hess, entropia e energia livre"],["Cinética química","Velocidade e mecanismos, equação de velocidade, teoria das colisões, complexo ativado e catálise"],["Equilíbrio químico","Equilíbrio das soluções aquosas, fatores que o alteram, ácido-base, solubilidade e complexação"],["Eletroquímica","Estados de oxidação, óxido-redução, pilhas e eletrólise"],["Radioatividade","Descoberta, emissões alfa, beta e gama, cinética dos decaimentos, fusão e fissão nuclear"],["Nomenclatura orgânica","Princípios básicos"],["Funções orgânicas, reações e mecanismos",""],["Ensino de Química: conhecimento científico e habilidade didática",""],["Construção do conhecimento no ensino de Química","Abordagens metodológicas"],["Materiais didáticos no ensino de Química",""],["Atividades experimentais",""],["Ensino de Química e novas tecnologias (TIC)",""],["Avaliação da aprendizagem em Química",""],["Competências e habilidades: BNCC e DCRC",""]]}];
+const DATA_PROVA='2026-11-22';
+let EP={},edAb={};
+async function edital(){
+  const {data,error}=await sb.from('edital_progresso').select('chave,estudado,revisado').limit(1000);
+  EP={};(data||[]).forEach(x=>{EP[x.chave]={e:!!x.estudado,r:!!x.revisado}});
+  const dias=Math.ceil((new Date(DATA_PROVA+'T12:00')-new Date(hoje()+'T12:00'))/864e5);
+  const sc=(ic,id,l,c)=>`<div class="card sc"><i>${ic}</i><b id="${id}" style="color:${c}"></b><span>${l}</span></div>`;
+  const lista=EDITAL.map(m=>`<details class="card ed" data-m="${m.id}"${edAb[m.id]?' open':''}><summary><span class="edn">${esc(m.n)}</span><span class="edb">${m.p} · ${m.q} questões · mín. ${m.min}</span><span class="edp" id="ep-${m.id}"></span><span class="bar"><i id="eb-${m.id}"></i></span></summary><div class="edl"><div class="edh"><span></span><span>Estudei</span><span>Revisei</span></div>${m.t.map((t,i)=>`<div class="edr"><div><span class="n">${i+1}</span>${esc(t[0])}${t[1]?`<small>${esc(t[1])}</small>`:''}</div><label><input type="checkbox" data-k="${m.id}:${i}" data-t="e" aria-label="Estudei: ${esc(t[0])}"></label><label><input type="checkbox" data-k="${m.id}:${i}" data-t="r" aria-label="Revisei: ${esc(t[0])}"></label></div>`).join('')}</div></details>`).join('');
+  $('#edbox').innerHTML=`<h2 class="hi">📋 Edital verticalizado</h2>
+  <p class="mut" style="margin:-8px 0 14px">Concurso SEDUC-CE 2026 (Edital nº 014/2026) · Professor de Química, código 13. Marque o que você já estudou e revisou.</p>
+  <div class="grid">${sc('📚','ed-e','Estudado','var(--ac)')}${sc('🔁','ed-r','Revisado','var(--ok)')}${sc('✅','ed-t','Tópicos estudados','var(--tx)')}${sc('⏳',dias>0?'ed-d':'ed-d2','Dias para a prova objetiva','#d98a0a')}</div>
+  <div class="card"><b>Como a prova funciona</b>
+  <p class="mut" style="margin:6px 0 0">P1 (30 questões): mínimo de 12 pontos no total e mínimos por matéria: Educação Brasileira 3, Administração Pública 3, Língua Portuguesa 3 e Leitura de Dados 2. P2 (50 questões de Química): mínimo de 20 pontos. Na soma, é preciso fazer ao menos 40 dos 80 pontos. Cada questão vale 1 ponto, sem nota negativa. Depois vêm a Prova Prática (aula de 25 min, 40 pontos, mínimo 20) e a Avaliação de Títulos (até 20 pontos, só classificatória). Prova objetiva prevista para 22/11/2026: confirme no site da CEV/UECE.</p></div>
+  <p class="mut" id="edmsg" style="color:var(--er)">${error?'Não foi possível carregar o progresso ('+esc(error.message)+'). Confira se a tabela edital_progresso foi criada no Supabase.':''}</p>
+  ${lista}`;
+  const dd=$('#ed-d')||$('#ed-d2');dd.textContent=dias>0?dias:(dias===0?'Hoje':'Já passou');
+  edAtualiza();
+}
+function edAtualiza(){
+  let tot=0,est=0,rev=0;
+  EDITAL.forEach(m=>{let e=0;
+    m.t.forEach((_,i)=>{const p=EP[m.id+':'+i]||{};tot++;if(p.e){est++;e++}if(p.r)rev++;
+      document.querySelectorAll(`[data-k="${m.id}:${i}"]`).forEach(c=>c.checked=!!p[c.dataset.t])});
+    $('#ep-'+m.id).textContent=e+'/'+m.t.length;$('#eb-'+m.id).style.width=Math.round(e/m.t.length*100)+'%'});
+  const pc=n=>tot?Math.round(n/tot*100):0;
+  $('#ed-e').textContent=pc(est)+'%';$('#ed-r').textContent=pc(rev)+'%';$('#ed-t').textContent=est+'/'+tot;
+}
+$('#edbox').addEventListener('change',async ev=>{
+  const c=ev.target;if(!c.dataset||!c.dataset.k)return;
+  const k=c.dataset.k,p=EP[k]=EP[k]||{e:false,r:false};
+  if(c.dataset.t==='e'){p.e=c.checked;if(!c.checked)p.r=false}else{p.r=c.checked;if(c.checked)p.e=true}
+  edAtualiza();
+  const {error}=await sb.from('edital_progresso').upsert({chave:k,estudado:p.e,revisado:p.r,atualizado_em:new Date().toISOString()},{onConflict:'chave'});
+  $('#edmsg').textContent=error?'Não foi possível salvar ('+error.message+'). Confira se a tabela edital_progresso foi criada no Supabase.':'';
+});
+$('#edbox').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.m)edAb[d.dataset.m]=d.open},true);
 
 /* ---------- cronograma ---------- */
 $('#cd').value=hoje();
