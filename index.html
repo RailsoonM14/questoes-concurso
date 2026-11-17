@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Questões de Concurso</title>
+<title>R14 Concursos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -253,11 +253,12 @@ header h1{background:linear-gradient(90deg,#1b6b45,#3fb97a);-webkit-background-c
 .fc .ic .em,.sc i .em{width:1.25em;height:1.25em;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
 .sc i{font-size:1.9rem}
 .fc .ic{font-size:2.6rem}
-@media(min-width:900px){#tabs .ic{font-size:1.55rem}}
+@media(min-width:900px){#tabs .ic{font-size:1.35rem}}
 @media(max-width:640px){#tabs{background:linear-gradient(90deg,#17402c,#2e6b48 50%,#3f8a5f)}[data-theme=dark] #tabs{background:linear-gradient(90deg,#0f2a1d,#1f4d36 50%,#2a6648)}}
 header .ghost{white-space:nowrap}
 @media(max-width:640px){header{gap:6px;padding-left:12px;padding-right:12px}header h1{font-size:1rem;line-height:1.15}#conc{max-width:122px;font-size:.78rem;padding:6px 6px!important}header .ghost{padding:6px 10px;font-size:.8rem}}
 [data-theme=dark] header h1,[data-theme=dark] .stat b{background-image:linear-gradient(90deg,#6ad39a,#a6f0c6)}
+.stat .si{font-style:normal;font-size:1.5rem;line-height:1;margin-bottom:6px}.stat .si .em{width:1.25em;height:1.25em;filter:drop-shadow(0 3px 4px rgba(0,0,0,.22))}
 </style>
 </head>
 <body>
@@ -273,7 +274,7 @@ header .ghost{white-space:nowrap}
 
 <div id="app" hidden>
 <header>
-  <h1>Questões de Concurso</h1>
+  <h1>R14 Concursos</h1>
   <select id="conc" aria-label="Concurso" title="Trocar de concurso" style="width:auto;min-width:0;max-width:190px;padding:7px 10px;border-radius:10px;font-weight:600"></select>
   <button id="tema" class="ghost" type="button">☾ Escuro</button>
   <button id="sair" class="ghost" type="button">Sair</button>
@@ -618,7 +619,8 @@ async function inicio(){
     sb.from('flashcards').select('id',{count:'exact',head:true}).eq('concurso',CONC).lte('revisar_em',h),
     sb.from('cronograma').select('titulo,disciplina,concluida').eq('concurso',CONC).eq('data',h),epFiltro(sb.from('edital_progresso').select('chave').eq('estudado',true))]);
   const d=r.data||[],t=d.length,ac=d.filter(x=>x.correta).length,ts=c.data||[],ned=ED().reduce((a,m)=>a+m.t.length,0),pctEd=ned?Math.round((pe.data||[]).length/ned*100):0;
-  const k=(n,l,v)=>`<button class="card stat" data-go="${v}"><b>${n}</b><span class="mut">${l}</span></button>`;
+  const IC={'questões hoje':'🎯','de acertos hoje':'📈','erros no caderno':'📓','flashcards para revisar':'🗂️','estudado hoje':'⏳','do edital estudado':'📋'};
+  const k=(n,l,v)=>`<button class="card stat" data-go="${v}"><i class="si">${IC[l]||''}</i><b>${n}</b><span class="mut">${l}</span></button>`;
   $('#ibox').innerHTML=`<h2 class="hi">Bom estudo!</h2><div class="grid">${k(t,'questões hoje','q')}${k(t?Math.round(ac/t*100)+'%':'—','de acertos hoje','d')}${k(bqAll.filter(x=>resp[x.id]&&resp[x.id]!==x.gabarito).length,'erros no caderno','e')}${k(f.count||0,'flashcards para revisar','f')}${k(tmCurto(),'estudado hoje','q')}${k(pctEd+'%','do edital estudado','v')}</div>
   <div class="card"><h3 style="margin-top:0">Tarefas de hoje</h3>${ts.length?ts.map(x=>`<p class="tk">${x.concluida?'✅':'⬜'} <span>${esc(x.titulo)}${x.disciplina?` <span class="mut">· ${esc(x.disciplina)}</span>`:''}</span></p>`).join(''):'<p class="mut">Nenhuma tarefa para hoje. Planeje no Cronograma.</p>'}</div>`;
   document.querySelectorAll('#ibox [data-go]').forEach(b=>b.onclick=()=>ver(b.dataset.go));
